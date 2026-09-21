@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
             {isBellOpen && (
               <div
                 dir="rtl"
-                className="absolute left-0 sm:right-auto sm:left-0 mt-2 w-80 sm:w-88 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
+                className="absolute top-full right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
               >
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
                   <div className="flex items-center gap-1.5">
@@ -236,7 +236,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                 {isProfileOpen && (
                   <div
                     dir="rtl"
-                    className="absolute left-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
+                    className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
                     <div className="px-3 py-2 border-b border-gray-100 mb-2">
                       <div className="font-bold text-gray-900 text-sm truncate">{userName}</div>

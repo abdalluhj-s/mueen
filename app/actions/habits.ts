@@ -58,9 +58,8 @@ export async function toggleHabitCompletion(
     throw new Error('حدث خطأ أثناء حفظ حالة الورد اليومي.');
   }
 
-  // 3. تطبيق Revalidation لتحديث الكاش وشريط التقدم فورياً في الواجهة
-  revalidatePath('/');
-  revalidatePath('/dashboard');
+  // لا نستخدم revalidatePath هنا لأن الحالة تُدار محلياً عبر localStorage
+  // revalidatePath يسبب إعادة تحميل الصفحة وفقدان حالة المستخدم
 
   return {
     success: true,

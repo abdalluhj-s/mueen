@@ -13,16 +13,53 @@ import { createClient } from '../lib/supabase/client';
 import { Quote, Sparkles, UserPlus, LogIn, X } from 'lucide-react';
 import Link from 'next/link';
 
+// إصدار العادات الافتراضية — تغييره يؤدي لإعادة ضبط LocalStorage للزوار الجدد
+const HABITS_VERSION = 'v3';
+const HABITS_KEY = 'mueen_habits';
+const VERSION_KEY = 'mueen_habits_version';
+
 const DEFAULT_HABITS: HabitItem[] = [
-  { id: 'h1', title: 'الصلوات الخمس في أوقاتها مع الجماعة', category: 'صلاة', completed: true, timeHint: 'الفجر، الظهر، العصر، المغرب، العشاء' },
-  { id: 'h2', title: 'ورد القرآن اليومي (جزء أو نصف حزب)', category: 'قرآن', completed: true, timeHint: 'بعد صلاة الفجر' },
-  { id: 'h3', title: 'أذكار الصباح والمساء', category: 'أذكار', completed: false, timeHint: 'شروق وغروب الشمس' },
-  { id: 'h4', title: 'صلاة الوتر وركعتي قيام الليل', category: 'صلاة', completed: false, timeHint: 'في الثلث الأخير من الليل' },
-  { id: 'h5', title: 'السنن الرواتب (12 ركعة)', category: 'صلاة', completed: false, timeHint: 'قبل وبعد الصلوات المفروضة' },
+  // ===== الصلوات =====
+  { id: 'h1', title: 'صلاة الفجر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان الفجر' },
+  { id: 'h2', title: 'صلاة الظهر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان الظهر' },
+  { id: 'h3', title: 'صلاة العصر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان العصر' },
+  { id: 'h4', title: 'صلاة المغرب في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان المغرب' },
+  { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان العشاء' },
+  { id: 'h6', title: 'السنن الرواتب (12 ركعة)', category: 'صلاة', completed: false, timeHint: 'قبل وبعد الصلوات المفروضة' },
+  { id: 'h7', title: 'صلاة الوتر وركعتي قيام الليل', category: 'صلاة', completed: false, timeHint: 'في الثلث الأخير من الليل' },
+  // ===== القرآن =====
+  { id: 'h8', title: 'ورد القرآن اليومي (جزء أو نصف حزب)', category: 'قرآن', completed: false, timeHint: 'بعد صلاة الفجر' },
+  // ===== الأذكار =====
+  { id: 'h9', title: 'أذكار الصباح', category: 'أذكار', completed: false, timeHint: 'بعد صلاة الفجر حتى الشروق' },
+  { id: 'h10', title: 'أذكار المساء', category: 'أذكار', completed: false, timeHint: 'من العصر حتى غروب الشمس' },
+  { id: 'h11', title: 'أذكار أخرى (النوم، الأكل، الخروج...)', category: 'أذكار', completed: false, timeHint: 'طوال اليوم' },
 ];
 
+// قراءة العادات من LocalStorage مع دعم الإصدار (Versioned)
+function loadHabitsFromStorage(): HabitItem[] {
+  if (typeof window === 'undefined') return DEFAULT_HABITS;
+  try {
+    const version = localStorage.getItem(VERSION_KEY);
+    const saved = localStorage.getItem(HABITS_KEY);
+
+    // إذا اختلف الإصدار أو لا يوجد بيانات، نبدأ من الافتراضي
+    if (version !== HABITS_VERSION || !saved) {
+      localStorage.setItem(VERSION_KEY, HABITS_VERSION);
+      localStorage.setItem(HABITS_KEY, JSON.stringify(DEFAULT_HABITS));
+      return DEFAULT_HABITS;
+    }
+
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    return DEFAULT_HABITS;
+  } catch {
+    return DEFAULT_HABITS;
+  }
+}
+
 export default function DashboardPage() {
-  const [habits, setHabits] = useState<HabitItem[]>(DEFAULT_HABITS);
+  // Lazy initializer: يقرأ من LocalStorage مباشرةً في أول render، لا ارتداد
+  const [habits, setHabits] = useState<HabitItem[]>(() => loadHabitsFromStorage());
   const [partner, setPartner] = useState<PartnerStatus | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -62,24 +99,8 @@ export default function DashboardPage() {
 
   const { gregorian, hijri } = getFormattedDates();
 
-  // 1. استرجاع العادات المحفوظة من LocalStorage أو التحقق من Supabase
+  // 1. التحقق من تسجيل الدخول فقط (العادات تُحمَّل فوراً من lazy initializer)
   useEffect(() => {
-    // تحميل العادات من LocalStorage
-    try {
-      const savedHabits = localStorage.getItem('mueen_habits');
-      if (savedHabits) {
-        const parsed = JSON.parse(savedHabits);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setHabits(parsed);
-        }
-      } else {
-        localStorage.setItem('mueen_habits', JSON.stringify(DEFAULT_HABITS));
-      }
-    } catch (e) {
-      console.warn('تعذر قراءة العادات من LocalStorage:', e);
-    }
-
-    // التحقق من حالة تسجيل الدخول
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -119,7 +140,7 @@ export default function DashboardPage() {
 
     // الحفظ المحلي الفوري الدائم
     try {
-      localStorage.setItem('mueen_habits', JSON.stringify(updatedHabits));
+      localStorage.setItem(HABITS_KEY, JSON.stringify(updatedHabits));
     } catch (e) {
       console.warn('تعذر الحفظ في LocalStorage:', e);
     }
@@ -151,7 +172,7 @@ export default function DashboardPage() {
     setHabits(updatedHabits);
 
     try {
-      localStorage.setItem('mueen_habits', JSON.stringify(updatedHabits));
+      localStorage.setItem(HABITS_KEY, JSON.stringify(updatedHabits));
     } catch (e) {
       console.warn('تعذر الحفظ في LocalStorage:', e);
     }
@@ -163,7 +184,7 @@ export default function DashboardPage() {
     setHabits(updatedHabits);
 
     try {
-      localStorage.setItem('mueen_habits', JSON.stringify(updatedHabits));
+      localStorage.setItem(HABITS_KEY, JSON.stringify(updatedHabits));
     } catch (e) {
       console.warn('تعذر الحفظ في LocalStorage:', e);
     }
