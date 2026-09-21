@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="mueenGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857"/>
+      <stop offset="50%" stop-color="#065f46"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+    <linearGradient id="goldGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="48" fill="url(#mueenGrad192)"/>
+  <circle cx="96" cy="96" r="75" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <path d="M110 52 C75 52 52 80 52 110 C52 140 76 160 106 160 C122 160 137 154 148 142 C116 148 82 124 82 94 C82 70 102 54 110 52 Z" fill="url(#goldGrad192)"/>
+  <polygon points="128,64 131,71 138,71 132,75 134,82 128,77 121,82 123,75 117,71 124,71" fill="#fef3c7"/>
+</svg>
