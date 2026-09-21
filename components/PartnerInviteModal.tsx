@@ -60,7 +60,7 @@ export const PartnerInviteModal: React.FC<PartnerInviteModalProps> = ({
           setIsGuest(true);
         });
     }
-  }, [isOpen, inviteCode]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

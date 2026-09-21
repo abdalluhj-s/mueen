@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Check, BookOpen, Sun, Moon, Compass, Clock, Trash2 } from 'lucide-react';
 import { HabitItem, HabitCategory } from '../types/dashboard';
 
@@ -74,13 +75,25 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
 
         {/* عنوان العادة والملاحظات */}
         <div className="truncate min-w-0 flex-1">
-          <h3
-            className={`text-sm sm:text-base font-semibold transition-colors duration-200 truncate ${
-              habit.completed ? 'text-gray-400 line-through' : 'text-gray-900'
-            }`}
-          >
-            {habit.title}
-          </h3>
+          {habit.category === 'قرآن' ? (
+            <Link
+              href="/quran"
+              onClick={(e) => e.stopPropagation()}
+              className={`text-sm sm:text-base font-semibold transition-colors duration-200 truncate block hover:text-emerald-700 hover:underline ${
+                habit.completed ? 'text-gray-400 line-through' : 'text-gray-900'
+              }`}
+            >
+              {habit.title}
+            </Link>
+          ) : (
+            <h3
+              className={`text-sm sm:text-base font-semibold transition-colors duration-200 truncate ${
+                habit.completed ? 'text-gray-400 line-through' : 'text-gray-900'
+              }`}
+            >
+              {habit.title}
+            </h3>
+          )}
           {habit.timeHint && (
             <span className="text-xs text-gray-400 mt-0.5 block truncate">
               {habit.timeHint}
@@ -106,7 +119,7 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
               e.stopPropagation();
               onDelete(habit.id);
             }}
-            className="p-1 rounded-lg text-gray-300 hover:text-rose-600 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 sm:opacity-0 focus:opacity-100 cursor-pointer"
+            className="p-1 rounded-lg text-gray-300 hover:text-rose-600 hover:bg-rose-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
           </button>
