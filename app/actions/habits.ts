@@ -112,9 +112,7 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
     .select('id')
     .eq('user_id', partnerId);
 
-  const totalHabits = partnerHabits?.length || 0;
-
-  if (totalHabits === 0) {
+  if (!partnerHabits || partnerHabits.length === 0) {
     return {
       id: partnerId,
       name: profile?.full_name || 'رفيق الالتزام',
@@ -126,6 +124,8 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
       encouragedToday: false,
     };
   }
+
+  const totalHabits = partnerHabits.length;
 
   // استخراج معرّفات عادات الشريك
   const partnerHabitIds = partnerHabits.map((h) => h.id);
