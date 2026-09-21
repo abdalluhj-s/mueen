@@ -29,9 +29,10 @@ export const PartnerInviteModal: React.FC<PartnerInviteModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'invite' | 'join'>('invite');
   const [inviteCode, setInviteCode] = useState<string>('MN-8F3B92');
-  const [inviteUrl, setInviteUrl] = useState<string>('https://mueen.app/join?code=MN-8F3B92');
+  const [inviteUrl, setInviteUrl] = useState<string>('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   // إدخال كود الصديق
   const [inputCode, setInputCode] = useState('');
@@ -44,18 +45,22 @@ export const PartnerInviteModal: React.FC<PartnerInviteModalProps> = ({
     if (isOpen) {
       setErrorMsg(null);
       setSuccessMsg(null);
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://chipper-kheer-12d0a9.netlify.app';
+      setInviteUrl(`${origin}/join?code=${inviteCode}`);
+
       getUserInviteCode()
         .then((res) => {
           if (res?.code) {
             setInviteCode(res.code);
-            setInviteUrl(res.fullUrl);
+            setInviteUrl(res.fullUrl || `${origin}/join?code=${res.code}`);
+            setIsGuest(false);
           }
         })
-        .catch((err) => {
-          console.warn('استخدام الكود التجريبي المؤقت:', err);
+        .catch(() => {
+          setIsGuest(true);
         });
     }
-  }, [isOpen]);
+  }, [isOpen, inviteCode]);
 
   if (!isOpen) return null;
 
@@ -253,6 +258,21 @@ export const PartnerInviteModal: React.FC<PartnerInviteModalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {isGuest && (
+                <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-800 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>سجّل الدخول بحسابك لتفعيل كودك الخاص ومزامنة شريكك سحابياً.</span>
+                  </div>
+                  <a
+                    href="/login"
+                    className="px-2.5 py-1 bg-emerald-700 text-white rounded-lg font-semibold hover:bg-emerald-800 shrink-0 text-[11px]"
+                  >
+                    دخول
+                  </a>
+                </div>
+              )}
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
