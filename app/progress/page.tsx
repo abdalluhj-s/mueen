@@ -2,7 +2,7 @@ import React from 'react';
 import { createClient } from '../../lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Header } from '../../components/Header';
-import { Calendar, CheckCircle, Flame, Target } from 'lucide-react';
+import { Calendar, CheckCircle, Flame, Target, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
@@ -16,28 +16,28 @@ export default async function ProgressPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect('/login?next=/progress');
-  }
+  // جلب سجلات الأيام للمستخدم إذا كان مسجلاً
+  let logs: any[] = [];
+  if (user) {
+    const { data, error } = await supabase
+      .from('daily_logs')
+      .select(`
+        date,
+        completed,
+        user_habits!inner (
+          id,
+          user_id,
+          title
+        )
+      `)
+      .eq('user_habits.user_id', user.id)
+      .eq('completed', true);
 
-  // جلب سجلات الأيام للمستخدم
-  // نستخدم inner join لضمان جلب السجلات التي تتبع عادات هذا المستخدم فقط
-  const { data: logs, error } = await supabase
-    .from('daily_logs')
-    .select(`
-      date,
-      completed,
-      user_habits!inner (
-        id,
-        user_id,
-        title
-      )
-    `)
-    .eq('user_habits.user_id', user.id)
-    .eq('completed', true);
-
-  if (error) {
-    console.error('خطأ في جلب السجلات:', error);
+    if (error) {
+      console.error('خطأ في جلب السجلات:', error);
+    } else if (data) {
+      logs = data;
+    }
   }
 
   // تجميع السجلات حسب اليوم
@@ -123,6 +123,26 @@ export default async function ProgressPage() {
             العودة للرئيسية
           </Link>
         </div>
+
+        {/* تنبيه وضع الضيف إذا لم يكن مسجلاً */}
+        {!user && (
+          <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <p className="leading-relaxed">
+                أنت تتصفح السجل كـ <strong>ضيف</strong>. سجّل دخولك لحفظ إنجازاتك اليومية والشهرية سحابياً ومتابعتها من أي جهاز!
+              </p>
+            </div>
+            <Link
+              href="/login"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-xs sm:text-sm transition-colors shrink-0 text-center shadow-xs"
+            >
+              تسجيل الدخول
+            </Link>
+          </div>
+        )}
 
         {/* بطاقات الإحصائيات */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -132,16 +132,14 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
 
         {/* معلومات المستخدم وسلسلة الالتزام والأدوات */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* زر السجل الشهري */}
-          {currentUser && (
-            <Link 
-              href="/progress"
-              className="hidden sm:flex items-center gap-1.5 bg-gray-50 text-gray-700 px-3 py-1.5 rounded-full border border-gray-200/70 text-xs sm:text-sm font-semibold hover:bg-gray-100 hover:text-emerald-700 transition-colors shadow-xs"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>السجل</span>
-            </Link>
-          )}
+          {/* زر السجل الشهري - متاح للجميع */}
+          <Link 
+            href="/progress"
+            className="flex items-center gap-1 sm:gap-1.5 bg-gray-50 text-gray-700 px-2.5 sm:px-3 py-1.5 rounded-full border border-gray-200/70 text-xs sm:text-sm font-semibold hover:bg-gray-100 hover:text-emerald-700 transition-colors shadow-xs"
+          >
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
+            <span>السجل</span>
+          </Link>
 
           {/* عداد الالتزام المتواصل */}
           <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full border border-amber-200/70 text-xs sm:text-sm font-semibold shadow-xs">
