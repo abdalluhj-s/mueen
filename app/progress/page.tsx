@@ -1,7 +1,7 @@
 import React from 'react';
 import { createClient } from '../../lib/supabase/server';
 import { redirect } from 'next/navigation';
-import Header from '../../components/Header';
+import { Header } from '../../components/Header';
 import { Calendar, CheckCircle, Flame, Target } from 'lucide-react';
 import Link from 'next/link';
 
