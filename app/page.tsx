@@ -149,7 +149,10 @@ export default function DashboardPage() {
     if (isLoggedIn) {
       startTransition(async () => {
         try {
-          await toggleHabitCompletion(id, today, newStatus);
+          await toggleHabitCompletion(id, today, newStatus, {
+            title: targetHabit.title,
+            category: targetHabit.category,
+          });
         } catch (error) {
           console.warn('تنبيه المزامنة السحابية:', error);
           // لا نقوم بإلغاء التحديد للواجهة لضمان تجربة مستخدم سلسة دون ارتداد

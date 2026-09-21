@@ -13,7 +13,8 @@ import { PartnerStatus } from '../../types/dashboard';
 export async function toggleHabitCompletion(
   userHabitId: string,
   date: string,
-  status: boolean
+  status: boolean,
+  habitDetails?: { title: string; category: string }
 ) {
   const supabase = await createClient();
 
@@ -27,16 +28,36 @@ export async function toggleHabitCompletion(
     throw new Error('غير مصرح لك بتنفيذ هذه العملية. يرجى تسجيل الدخول.');
   }
 
-  // التحقق من أن العادة تخص المستخدم الحالي قبل التعديل
-  const { data: userHabit, error: habitError } = await supabase
-    .from('user_habits')
-    .select('id')
-    .eq('id', userHabitId)
-    .eq('user_id', user.id)
-    .single();
+  // تحديث أو إدخال العادة في جدول user_habits لضمان وجودها (مهم للعادات الافتراضية)
+  if (habitDetails) {
+    const { error: upsertHabitError } = await supabase
+      .from('user_habits')
+      .upsert(
+        {
+          id: userHabitId,
+          user_id: user.id,
+          title: habitDetails.title,
+          category: habitDetails.category,
+          is_active: true,
+        },
+        { onConflict: 'id' }
+      );
 
-  if (habitError || !userHabit) {
-    throw new Error('لم يتم العثور على هذه العادة في قائمة عاداتك.');
+    if (upsertHabitError) {
+      console.warn('تعذر تحديث بيانات العادة في قاعدة البيانات:', upsertHabitError);
+    }
+  } else {
+    // التحقق القديم في حال لم يتم تمرير التفاصيل
+    const { data: userHabit, error: habitError } = await supabase
+      .from('user_habits')
+      .select('id')
+      .eq('id', userHabitId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (habitError || !userHabit) {
+      throw new Error('لم يتم العثور على هذه العادة في قائمة عاداتك.');
+    }
   }
 
   // إضافة أو تعديل السجل في جدول daily_logs عبر Upsert
