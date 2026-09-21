@@ -2,43 +2,31 @@
 
 منصة ويب وتطبيق هاتف تقدمي (PWA) لتثبيت العادات والعبادات اليومية (الصلوات المفروضة، ورد القرآن، أذكار الصباح والمساء) بنظام **شريك الالتزام (Accountability Partner)**.
 
----
-
-## 🌟 الميزات الرئيسية
-- 🕌 **متابعة العادات اليومية**: واجهة تفاعلية لتسجيل الصلوات والأوراد مع شريط تقدم ونسبة إنجاز يومية.
-- 🤝 **نظام شريك الالتزام**: ربط مستخدمين اثنين بروابط أو أكواد دعوة مباشرة للمسير معاً في درب الطاعة.
-- 🛡️ **خصوصية كاملة**: يرى كل شريك نسبة إنجاز رفيقه الإجمالية فقط دون كشف أي تفاصيل شخصية أو عبادات منفردة.
-- 📱 **تطبيق تقدمي (PWA)**: قابل للتثبيت على هواتف أندرويد و iOS (Add to Home Screen) ليعمل كتطبيق كامل بدون شريط متصفح وبدعم كامل للـ RTL.
-- ⚡ **تسجيل دخول سريع عبر Google**: باستخدام Supabase OAuth ومزامنة تلقائية للحسابات.
-- 💬 **مشاركة ذكية عبر WhatsApp**: دعوة الشريك بنقرة واحدة برسالة جاهزة ومصاغة بشكل ودي عبر رابط مباشر.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/abdalluhj-s/mueen)
 
 ---
 
-## 🛠️ التقنيات المستخدمة
-- **Next.js 14+ (App Router)**
-- **Supabase (PostgreSQL, RLS, Auth, Triggers)**
-- **Tailwind CSS (RTL, Mobile-First)**
-- **Lucide Icons**
-- **TypeScript**
+## 🌟 الميزات المضافة
+- 📱 **تطبيق تقدمي (PWA)**: يدعم التثبيت على شاشات الهواتف (Add to Home Screen) ليعمل كتطبيق أصيل بدون إطار المتصفح، مع أيقونات مخصصة وألوان إسلامية هادئة.
+- ⚡ **تسجيل الدخول السريع عبر Google**: عبر Supabase OAuth مع معالجة Callback وإعادة التوجيه التلقائي.
+- 💬 **مشاركة ذكية عبر WhatsApp**: إرسال دعوة الشريك بنقرة واحدة برسالة مجهزة مسبقاً عبر الرابط المباشر.
+- 🤝 **نظام شريك الالتزام**: متابعة متبادلة لنسبة الإنجاز اليومية مع الحفاظ التام على خصوصية تفاصيل العبادات.
+- 🛡️ **حماية وأمان**: حماية البيانات بسياسات Row Level Security (RLS) وتريجر تلقائي للمستخدمين.
 
 ---
 
-## 🚀 التشغيل محلياً
+## 🚀 الروابط المباشرة
+- **مستودع GitHub**: [https://github.com/abdalluhj-s/mueen](https://github.com/abdalluhj-s/mueen)
+- **الرابط التجريبي الحي (Live Preview)**: [https://mueen-platform.netlify.app](https://mueen-platform.netlify.app)
+- **النشر على Vercel بضغطة زر**: [Deploy on Vercel](https://vercel.com/new/clone?repository-url=https://github.com/abdalluhj-s/mueen)
 
-1. استنساخ المستودع وتثبيت الحزم:
+---
+
+## 🛠️ التشغيل محلياً
+
 ```bash
+git clone https://github.com/abdalluhj-s/mueen.git
+cd mueen
 npm install
-```
-
-2. ضبط متغيرات البيئة في `.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-```
-
-3. تشغيل خادم التطوير:
-```bash
 npm run dev
 ```
-افتح المتصفح على [http://localhost:3000](http://localhost:3000).
