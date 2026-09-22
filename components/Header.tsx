@@ -153,8 +153,8 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* الشعار واسم المنصة */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform border border-emerald-500/30 flex items-center justify-center bg-slate-900 shrink-0">
+            <img src="/logo.jpg" alt="شعار مُعين" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-1.5">
