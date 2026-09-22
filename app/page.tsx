@@ -64,6 +64,8 @@ export default function DashboardPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
   const [isPending, startTransition] = useTransition();
 
@@ -106,6 +108,8 @@ export default function DashboardPage() {
       if (user) {
         setIsLoggedIn(true);
         setShowGuestBanner(false);
+        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'أخي المبارك');
+        setUserEmail(user.email ?? null);
         loadPartnerData();
       }
     }).catch(() => {});
@@ -226,6 +230,21 @@ export default function DashboardPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        )}
+
+        {/* شريط الترحيب بالمستخدم المتصل وتأكيد المزامنة */}
+        {isLoggedIn && (
+          <div className="bg-emerald-50/70 dark:bg-slate-900/80 border border-emerald-200/60 dark:border-slate-800 rounded-2xl px-4 sm:px-5 py-3 flex items-center justify-between gap-3 text-xs sm:text-sm shadow-xs animate-in fade-in duration-300">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="text-gray-700 dark:text-gray-200 truncate">
+                مرحباً بك يا <strong>{userName}</strong> • تم تفعيل مزامنة أورادك وسجلك الشهري سحابياً ☁️
+              </span>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-200/70 dark:border-emerald-800 shrink-0">
+              سحابي نشط
+            </span>
           </div>
         )}
 

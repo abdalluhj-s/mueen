@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Flame, Bell, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked } from 'lucide-react';
+import { Sparkles, Flame, Bell, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '../lib/supabase/client';
+import { ProfileEditModal } from './ProfileEditModal';
 
 interface HeaderProps {
   userStreak?: number;
@@ -52,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   const bellRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -302,6 +304,18 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
 
                     <button
                       type="button"
+                      onClick={() => {
+                        setIsProfileEditOpen(true);
+                        setIsProfileOpen(false);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                    >
+                      <Settings className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>تعديل الملف الشخصي</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={handleSignOut}
                       className="w-full px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                     >
@@ -324,6 +338,26 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
           )}
         </div>
       </div>
+
+      {/* نافذة تعديل الملف الشخصي */}
+      {currentUser && (
+        <ProfileEditModal
+          isOpen={isProfileEditOpen}
+          onClose={() => setIsProfileEditOpen(false)}
+          currentName={userName}
+          currentAvatar={userAvatar}
+          onProfileUpdated={({ fullName, avatarUrl }) => {
+            setCurrentUser((prev: any) => ({
+              ...prev,
+              user_metadata: {
+                ...prev?.user_metadata,
+                full_name: fullName,
+                avatar_url: avatarUrl,
+              },
+            }));
+          }}
+        />
+      )}
     </header>
   );
 };
