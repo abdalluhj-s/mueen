@@ -159,10 +159,10 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
 
         {/* معلومات المستخدم وسلسلة الالتزام والأدوات */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
-          {/* زر الأذكار الجديد */}
+          {/* زر الأذكار الجديد (يظهر على الشاشات الأكبر لأنه متاح بالشريط السفلي للهاتف) */}
           <Link 
             href="/adhkar"
-            className="flex items-center gap-1 sm:gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200/70 dark:border-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-xs"
+            className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200/70 dark:border-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-xs"
           >
             <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
             <span>الأذكار</span>
@@ -171,7 +171,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
           {/* زر السجل الشهري */}
           <Link 
             href="/progress"
-            className="flex items-center gap-1 sm:gap-1.5 bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200 px-2.5 sm:px-3 py-1.5 rounded-full border border-gray-200/70 dark:border-slate-700 text-xs sm:text-sm font-semibold hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shadow-xs"
+            className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200 px-2.5 sm:px-3 py-1.5 rounded-full border border-gray-200/70 dark:border-slate-700 text-xs sm:text-sm font-semibold hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shadow-xs"
           >
             <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
             <span>السجل</span>
