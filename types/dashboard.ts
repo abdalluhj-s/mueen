@@ -24,3 +24,13 @@ export interface UserStats {
   streakDays: number;
   name: string;
 }
+
+export interface PartnerMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  message: string;
+  type: string;
+  createdAt: string;
+}
+

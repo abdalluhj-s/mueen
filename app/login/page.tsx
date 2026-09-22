@@ -1,18 +1,43 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { Sparkles, ShieldCheck, HeartHandshake, Loader2, ArrowRight, Mail, Lock, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginPageContent() {
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const codeParam = searchParams.get('code');
+
+  // الوجهة بعد تسجيل الدخول
+  let destination = '/';
+  if (codeParam) {
+    destination = `/join?code=${encodeURIComponent(codeParam)}`;
+  } else if (nextParam) {
+    destination = nextParam;
+  }
+
   const [authMethod, setAuthMethod] = useState<'google' | 'email'>('google');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // إذا وصل بكود دعوة، نحفظه في localStorage احتياطياً
+  useEffect(() => {
+    if (codeParam) {
+      try {
+        localStorage.setItem('pending_invite_code', codeParam.toUpperCase().trim());
+      } catch {
+        // ignore
+      }
+    }
+  }, [codeParam]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -20,7 +45,7 @@ export default function LoginPage() {
       setError(null);
       const supabase = createClient();
 
-      const redirectTo = `${window.location.origin}/auth/callback?next=/`;
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(destination)}`;
 
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -61,12 +86,17 @@ export default function LoginPage() {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              full_name: fullName || email.split('@')[0],
+            },
+          },
         });
 
         if (signUpError) throw signUpError;
         setSuccessMsg('تم إنشاء الحساب بنجاح! جارٍ تسجيل دخولك...');
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = destination;
         }, 1200);
       } else {
         // تسجيل الدخول
@@ -76,7 +106,7 @@ export default function LoginPage() {
         });
 
         if (signInError) throw signInError;
-        window.location.href = '/';
+        window.location.href = destination;
       }
     } catch (err: any) {
       console.error('خطأ في تسجيل الدخول:', err);
@@ -108,6 +138,14 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* تنبيه كود الدعوة إذا كان قادماً من رابط صديق */}
+        {codeParam && (
+          <div className="mb-5 p-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-xs text-emerald-100 flex items-center gap-2.5">
+            <HeartHandshake className="w-5 h-5 text-emerald-300 shrink-0" />
+            <span>سجل دخولك الآن وسيتم ربطك تلقائياً برفيقك (كود: <strong className="text-white font-mono">{codeParam}</strong>)</span>
+          </div>
+        )}
+
         {/* مميزات سريعة للمنصة */}
         <div className="space-y-2 mb-6 relative z-10 text-xs text-emerald-100/80">
           <div className="flex items-center gap-2.5 bg-white/5 p-2 rounded-xl border border-white/10">
@@ -127,7 +165,7 @@ export default function LoginPage() {
             onClick={() => { setAuthMethod('google'); setError(null); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
               authMethod === 'google'
-                ? 'bg-emerald-600 text-white shadow-sm'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-emerald-100/70 hover:text-white'
             }`}
           >
@@ -138,7 +176,7 @@ export default function LoginPage() {
             onClick={() => { setAuthMethod('email'); setError(null); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
               authMethod === 'email'
-                ? 'bg-emerald-600 text-white shadow-sm'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-emerald-100/70 hover:text-white'
             }`}
           >
@@ -190,6 +228,21 @@ export default function LoginPage() {
           ) : (
             /* نموذج الدخول بالبريد وكلمة المرور */
             <form onSubmit={handleEmailAuth} className="space-y-3.5">
+              {isSignUp && (
+                <div>
+                  <label className="block text-xs font-medium text-emerald-100/90 mb-1.5">
+                    الاسم الكريم
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="اسمك الكريم"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-emerald-200/40 focus:outline-hidden focus:border-emerald-400"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-emerald-100/90 mb-1.5">
                   البريد الإلكتروني
@@ -201,7 +254,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="example@mail.com"
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 pl-10 text-sm text-white placeholder-emerald-200/40 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 pl-10 text-sm text-white placeholder-emerald-200/40 focus:outline-hidden focus:border-emerald-400"
                   />
                   <Mail className="w-4 h-4 text-emerald-300 absolute left-3 top-3" />
                 </div>
@@ -219,7 +272,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 pl-10 text-sm text-white placeholder-emerald-200/40 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 pl-10 text-sm text-white placeholder-emerald-200/40 focus:outline-hidden focus:border-emerald-400"
                   />
                   <Lock className="w-4 h-4 text-emerald-300 absolute left-3 top-3" />
                 </div>
@@ -282,5 +335,19 @@ export default function LoginPage() {
         منصة مُعين • تثبيت عاداتك الدينية بروح الإخاء والالتزام 🌿
       </footer>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-emerald-950 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

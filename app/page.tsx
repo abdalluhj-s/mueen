@@ -7,10 +7,11 @@ import { HabitList } from '../components/HabitList';
 import { PartnerCard } from '../components/PartnerCard';
 import { PartnerInviteModal } from '../components/PartnerInviteModal';
 import { AddHabitModal } from '../components/AddHabitModal';
-import { HabitItem, PartnerStatus } from '../types/dashboard';
+import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
 import { toggleHabitCompletion, fetchPartnerProgress } from './actions/habits';
+import { acceptInviteCode, getPartnerMessages } from './actions/partner';
 import { createClient } from '../lib/supabase/client';
-import { Quote, Sparkles, UserPlus, LogIn, X } from 'lucide-react';
+import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell } from 'lucide-react';
 import Link from 'next/link';
 
 // إصدار العادات الافتراضية — تغييره يؤدي لإعادة ضبط LocalStorage للزوار الجدد
@@ -42,7 +43,6 @@ function loadHabitsFromStorage(): HabitItem[] {
     const version = localStorage.getItem(VERSION_KEY);
     const saved = localStorage.getItem(HABITS_KEY);
 
-    // إذا اختلف الإصدار أو لا يوجد بيانات، نبدأ من الافتراضي
     if (version !== HABITS_VERSION || !saved) {
       localStorage.setItem(VERSION_KEY, HABITS_VERSION);
       localStorage.setItem(HABITS_KEY, JSON.stringify(DEFAULT_HABITS));
@@ -58,15 +58,16 @@ function loadHabitsFromStorage(): HabitItem[] {
 }
 
 export default function DashboardPage() {
-  // Lazy initializer: يقرأ من LocalStorage مباشرةً في أول render، لا ارتداد
   const [habits, setHabits] = useState<HabitItem[]>(() => loadHabitsFromStorage());
   const [partner, setPartner] = useState<PartnerStatus | null>(null);
+  const [partnerMessages, setPartnerMessages] = useState<PartnerMessage[]>([]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const today = new Date().toISOString().split('T')[0];
@@ -101,31 +102,47 @@ export default function DashboardPage() {
 
   const { gregorian, hijri } = getFormattedDates();
 
-  // 1. التحقق من تسجيل الدخول فقط (العادات تُحمَّل فوراً من lazy initializer)
+  // جلب إنجاز ورسائل الشريك
+  const loadPartnerData = async () => {
+    try {
+      const partnerData = await fetchPartnerProgress();
+      setPartner(partnerData || null);
+
+      const msgs = await getPartnerMessages();
+      setPartnerMessages(msgs || []);
+    } catch (err) {
+      console.warn('تعذر جلب بيانات الشريك:', err);
+    }
+  };
+
+  // 1. التحقق من تسجيل الدخول ومعالجة أي كود دعوة معلق تلقائياً
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         setIsLoggedIn(true);
         setShowGuestBanner(false);
         setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'أخي المبارك');
         setUserEmail(user.email ?? null);
+
+        // فحص كود دعوة معلق في LocalStorage وقبوله فورياً
+        try {
+          const pendingCode = localStorage.getItem('pending_invite_code');
+          if (pendingCode) {
+            const res = await acceptInviteCode(pendingCode);
+            if (res.success) {
+              localStorage.removeItem('pending_invite_code');
+              setToastMsg(`تم ربطك بنجاح مع رفيقك المبارك (${res.partnerName || ''})! 🌿`);
+            }
+          }
+        } catch (e) {
+          console.warn('فحص كود الدعوة المعلق:', e);
+        }
+
         loadPartnerData();
       }
     }).catch(() => {});
   }, []);
-
-  // جلب إنجاز الشريك عند التحميل
-  const loadPartnerData = async () => {
-    try {
-      const partnerData = await fetchPartnerProgress();
-      if (partnerData) {
-        setPartner(partnerData);
-      }
-    } catch (err) {
-      console.warn('تعذر جلب بيانات الشريك:', err);
-    }
-  };
 
   const completedCount = habits.filter((h) => h.completed).length;
 
@@ -136,20 +153,17 @@ export default function DashboardPage() {
 
     const newStatus = !targetHabit.completed;
 
-    // تحديث الحالة فورياً وثباتها في الواجهة
     const updatedHabits = habits.map((h) =>
       h.id === id ? { ...h, completed: newStatus } : h
     );
     setHabits(updatedHabits);
 
-    // الحفظ المحلي الفوري الدائم
     try {
       localStorage.setItem(HABITS_KEY, JSON.stringify(updatedHabits));
     } catch (e) {
       console.warn('تعذر الحفظ في LocalStorage:', e);
     }
 
-    // المزامنة السحابية في الخلفية إذا كان المستخدم مسجلاً
     if (isLoggedIn) {
       startTransition(async () => {
         try {
@@ -159,7 +173,6 @@ export default function DashboardPage() {
           });
         } catch (error) {
           console.warn('تنبيه المزامنة السحابية:', error);
-          // لا نقوم بإلغاء التحديد للواجهة لضمان تجربة مستخدم سلسة دون ارتداد
         }
       });
     }
@@ -202,6 +215,23 @@ export default function DashboardPage() {
       <Header userStreak={9} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {/* إشعار عائم بالنجاح أو تأكيد الشريك */}
+        {toastMsg && (
+          <div className="bg-emerald-600 text-white rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-emerald-600/30 animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle className="w-5 h-5 text-emerald-200 shrink-0" />
+              <span className="text-sm font-bold">{toastMsg}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMsg(null)}
+              className="p-1 rounded-lg text-emerald-200 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* شريط تنبيه وضع الضيف للزوار غير المسجلين */}
         {!isLoggedIn && showGuestBanner && (
           <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 shadow-xs animate-in fade-in duration-300">
@@ -225,7 +255,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => setShowGuestBanner(false)}
                 aria-label="إغلاق التنبيه"
-                className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 transition-colors"
+                className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -283,10 +313,12 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* بطاقة الشريك */}
+            {/* بطاقة الشريك التفاعلية */}
             <PartnerCard
               partner={partner}
+              recentMessages={partnerMessages}
               onOpenInviteModal={() => setIsInviteModalOpen(true)}
+              onRefreshPartner={loadPartnerData}
             />
 
             {/* ومضة إيمانية */}

@@ -132,27 +132,38 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
     .select('id')
     .eq('user_id', partnerId);
 
+  // فحص ما إذا كان المستخدم قد أرسل تشجيعاً لشريكه اليوم
+  const today = new Date().toISOString().split('T')[0];
+  const { data: encouragementRecord } = await supabase
+    .from('partner_messages')
+    .select('id')
+    .eq('sender_id', user.id)
+    .eq('receiver_id', partnerId)
+    .gte('created_at', `${today}T00:00:00Z`)
+    .limit(1)
+    .maybeSingle();
+
+  const encouragedToday = !!encouragementRecord;
+
   if (!partnerHabits || partnerHabits.length === 0) {
     return {
       id: partnerId,
       name: profile?.full_name || 'رفيق الالتزام',
       avatarUrl: profile?.avatar_url,
       completedCount: 0,
-      totalHabits: 0,
+      totalHabits: 11,
       streakDays: 1,
       lastActiveTime: 'اليوم',
-      encouragedToday: false,
+      encouragedToday,
     };
   }
 
-  const totalHabits = partnerHabits.length;
+  const totalHabits = Math.max(partnerHabits.length, 11);
 
   // استخراج معرّفات عادات الشريك
   const partnerHabitIds = partnerHabits.map((h) => h.id);
 
   // جلب إنجازات الشريك المسجلة لليوم الحالي فقط (Current Date)
-  const today = new Date().toISOString().split('T')[0];
-
   const { data: todayLogs } = await supabase
     .from('daily_logs')
     .select('id, completed')
@@ -168,8 +179,9 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
     avatarUrl: profile?.avatar_url,
     completedCount: completedCount,
     totalHabits: totalHabits,
-    streakDays: 7, // يمكن حسابه ديناميكياً من عدد الأيام المتتابعة
-    lastActiveTime: completedCount > 0 ? 'اليوم (نشط)' : 'منذ فترة',
-    encouragedToday: false,
+    streakDays: completedCount > 0 ? 3 : 1,
+    lastActiveTime: completedCount > 0 ? 'اليوم (نشط)' : 'منذ قليل',
+    encouragedToday,
   };
 }
+

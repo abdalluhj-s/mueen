@@ -1,12 +1,31 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { createClient } from '../../lib/supabase/server';
 
 /**
- * دالة لجلب أو توليد كود الدعوة الخاص بالمستخدم الحالي
+ * جلب الرابط الأساسي الحالي للموقع ديناميكياً
  */
-export async function getUserInviteCode(): Promise<{ code: string; fullUrl: string }> {
+function getBaseUrl(): string {
+  let defaultUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://mueen.ah4549658.workers.dev';
+  try {
+    const headersList = headers();
+    const host = headersList.get('x-forwarded-host') || headersList.get('host');
+    const proto = headersList.get('x-forwarded-proto') || 'https';
+    if (host) {
+      return `${proto}://${host}`;
+    }
+  } catch {
+    // fallback
+  }
+  return defaultUrl;
+}
+
+/**
+ * 1. دالة لجلب أو توليد كود الدعوة ورابط المشاركة الخاص بالمستخدم الحالي
+ */
+export async function getUserInviteCode(): Promise<{ code: string; fullUrl: string; partnerName?: string }> {
   const supabase = await createClient();
 
   const {
@@ -21,9 +40,9 @@ export async function getUserInviteCode(): Promise<{ code: string; fullUrl: stri
   // 1. فحص ما إذا كان للمستخدم كود دعوة محفوظ مسبقاً في profiles
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, invite_code')
+    .select('id, full_name, invite_code')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   let code = profile?.invite_code;
 
@@ -32,34 +51,87 @@ export async function getUserInviteCode(): Promise<{ code: string; fullUrl: stri
     const randomSuffix = user.id.replace(/-/g, '').substring(0, 6).toUpperCase();
     code = `MN-${randomSuffix}`;
 
-    // حفظ الكود في جدول profiles (إذا كان العمود متاحاً)
+    // حفظ الكود في جدول profiles
     await supabase
       .from('profiles')
-      .update({ invite_code: code })
-      .eq('id', user.id);
+      .upsert({
+        id: user.id,
+        invite_code: code,
+        full_name: profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'صاحب همة',
+      }, { onConflict: 'id' });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://mueen.app';
+  const baseUrl = getBaseUrl();
   const fullUrl = `${baseUrl}/join?code=${code}`;
 
-  return { code, fullUrl };
+  return { code, fullUrl, partnerName: profile?.full_name };
 }
 
 /**
- * دالة التحقق من كود الدعوة وربط الشريكين وتغيير الحالة إلى accepted
- * @param inviteCode كود الدعوة المدخل (مثال: MN-A1B2C3 أو معرف المستخدم)
+ * 2. دالة لجلب بيانات صاحب كود الدعوة لعرضها للزائر قبل الانضمام
+ */
+export async function getInviteDetails(inviteCode: string): Promise<{
+  valid: boolean;
+  inviterId?: string;
+  inviterName?: string;
+  inviterAvatar?: string;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const cleanCode = inviteCode.trim().toUpperCase();
+
+  if (!cleanCode) {
+    return { valid: false, error: 'كود الدعوة فارغ.' };
+  }
+
+  // 1. البحث عبر عمود invite_code
+  let { data: profile } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url, invite_code')
+    .eq('invite_code', cleanCode)
+    .maybeSingle();
+
+  // 2. إذا لم يعثر عليه، نبحث عبر بادئة المعرف
+  if (!profile) {
+    const rawSuffix = cleanCode.replace(/^MN-/, '').toLowerCase();
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url, invite_code');
+
+    profile = profiles?.find((p) =>
+      p.id.replace(/-/g, '').toLowerCase().startsWith(rawSuffix)
+    ) || null;
+  }
+
+  if (!profile) {
+    return {
+      valid: false,
+      error: 'لم نتمكن من العثور على صاحب هذا الكود، تأكد من صحة الرابط المرسل إليك.',
+    };
+  }
+
+  return {
+    valid: true,
+    inviterId: profile.id,
+    inviterName: profile.full_name || 'رفيق صالح',
+    inviterAvatar: profile.avatar_url || undefined,
+  };
+}
+
+/**
+ * 3. دالة التحقق من كود الدعوة وربط الشريكين
  */
 export async function acceptInviteCode(inviteCode: string) {
   const supabase = await createClient();
 
-  // 1. التحقق من جلسة وهوية المستخدم الحالي
+  // 1. التحقق من هوية المستخدم الحالي
   const {
     data: { user: currentUser },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !currentUser) {
-    return { success: false, error: 'غير مصرح لك. يرجى تسجيل الدخول أولاً.' };
+    return { success: false, error: 'غير مصرح لك. يرجى تسجيل الدخول أولاً للارتباط بالرفيق.' };
   }
 
   const cleanCode = inviteCode.trim().toUpperCase();
@@ -67,12 +139,18 @@ export async function acceptInviteCode(inviteCode: string) {
     return { success: false, error: 'يرجى إدخال كود دعوة صحيح.' };
   }
 
-  // 2. البحث عن صاحب الدعوة
-  // نفحص إما عمود invite_code أو مطابقة بادئة المعرف
-  let inviterId: string | null = null;
-  let inviterName: string = 'شريك الالتزام';
+  // التأكد من وجود بروفايل للمستخدم الحالي
+  await supabase
+    .from('profiles')
+    .upsert({
+      id: currentUser.id,
+      full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'صاحب همة',
+    }, { onConflict: 'id' });
 
-  // البحث في profiles عبر كود الدعوة
+  // 2. البحث عن صاحب الدعوة
+  let inviterId: string | null = null;
+  let inviterName = 'شريك الالتزام';
+
   const { data: profileByCode } = await supabase
     .from('profiles')
     .select('id, full_name, invite_code')
@@ -83,7 +161,6 @@ export async function acceptInviteCode(inviteCode: string) {
     inviterId = profileByCode.id;
     inviterName = profileByCode.full_name || inviterName;
   } else {
-    // بديل: إذا كان الكود مشتقاً من بداية المعرف (MN-XXXXXX)
     const rawSuffix = cleanCode.replace(/^MN-/, '').toLowerCase();
     const { data: profiles } = await supabase
       .from('profiles')
@@ -102,15 +179,11 @@ export async function acceptInviteCode(inviteCode: string) {
   if (!inviterId) {
     return {
       success: false,
-      error: 'كود الدعوة غير صحيح أو منتهي الصلاحية. تأكد من صحة الكود المرسل إليك.',
+      error: 'كود الدعوة غير صحيح أو منتهي الصلاحية. تأكد من صحة الرابط أو الكود.',
     };
   }
 
-  // =========================================================================
-  // معالجة الحالات الاستثنائية (Edge Cases)
-  // =========================================================================
-
-  // الحالة الاستثنائية 1: منع المستخدم من مشاركة الكود مع نفسه أو إدخال كود نفسه
+  // منع المستخدم من قبول دعوة نفسه
   if (inviterId === currentUser.id) {
     return {
       success: false,
@@ -118,75 +191,64 @@ export async function acceptInviteCode(inviteCode: string) {
     };
   }
 
-  // الحالة الاستثنائية 2: فحص ما إذا كان المستخدم الحالي لديه شريك نشط مسبقاً
-  const { data: currentUserPartnerships } = await supabase
+  // فحص ما إذا كان الطرفان مرتبطان ببعضهما بالفعل
+  const { data: existingBetweenThem } = await supabase
     .from('partnerships')
     .select('id, status')
-    .eq('status', 'accepted')
-    .or(`user_id_1.eq.${currentUser.id},user_id_2.eq.${currentUser.id}`);
-
-  if (currentUserPartnerships && currentUserPartnerships.length > 0) {
-    return {
-      success: false,
-      error: 'لديك شريك التزام نشط بالفعل. النسخة الحالية تسمح برفيق واحد فقط في نفس الوقت.',
-    };
-  }
-
-  // الحالة الاستثنائية 3: فحص ما إذا كان صاحب الدعوة لديه شريك نشط بالفعل
-  const { data: inviterPartnerships } = await supabase
-    .from('partnerships')
-    .select('id, status')
-    .eq('status', 'accepted')
-    .or(`user_id_1.eq.${inviterId},user_id_2.eq.${inviterId}`);
-
-  if (inviterPartnerships && inviterPartnerships.length > 0) {
-    return {
-      success: false,
-      error: `عذراً، ${inviterName} مرتبط بشريك التزام آخر بالفعل.`,
-    };
-  }
-
-  // =========================================================================
-  // تسجيل الشراكة وتعيين الحالة إلى 'accepted'
-  // =========================================================================
-
-  // فحص ما إذا كان هناك طلب شراكة سابق بين الطرفين (سواء معلق أو ملغى)
-  const { data: existingPartnership } = await supabase
-    .from('partnerships')
-    .select('id')
     .or(
       `and(user_id_1.eq.${inviterId},user_id_2.eq.${currentUser.id}),and(user_id_1.eq.${currentUser.id},user_id_2.eq.${inviterId})`
     )
     .maybeSingle();
 
-  if (existingPartnership) {
-    // تحديث السجل القائم وتغيير حالته إلى accepted
-    const { error: updateError } = await supabase
-      .from('partnerships')
-      .update({ status: 'accepted' })
-      .eq('id', existingPartnership.id);
-
-    if (updateError) {
-      console.error('فشل تحديث الشراكة:', updateError.message);
-      return { success: false, error: 'تعذر تأكيد الشراكة، يرجى المحاولة لاحقاً.' };
-    }
-  } else {
-    // إدراج سجل جديد كـ accepted مباشرة
-    const { error: insertError } = await supabase
-      .from('partnerships')
-      .insert({
-        user_id_1: inviterId,
-        user_id_2: currentUser.id,
-        status: 'accepted',
-      });
-
-    if (insertError) {
-      console.error('فشل إنشاء الشراكة:', insertError.message);
-      return { success: false, error: 'تعذر إنشاء الشراكة، يرجى المحاولة لاحقاً.' };
-    }
+  if (existingBetweenThem && existingBetweenThem.status === 'accepted') {
+    return {
+      success: true,
+      partnerName: inviterName,
+      message: `أنتم رفقاء التزام بالفعل! بارك الله فيكما وفي مسيرتكما.`,
+    };
   }
 
-  // إعادة التحقق من كاش الصفحة لتحديث بطاقة الشريك فورياً
+  // إلغاء أي شراكات سابقة غير مكتملة أو قديمة لضمان رفيق واحد نشط
+  await supabase
+    .from('partnerships')
+    .delete()
+    .or(`user_id_1.eq.${currentUser.id},user_id_2.eq.${currentUser.id}`);
+
+  // تسجيل الشراكة وتعيين الحالة إلى 'accepted'
+  const { error: insertError } = await supabase
+    .from('partnerships')
+    .insert({
+      user_id_1: inviterId,
+      user_id_2: currentUser.id,
+      invite_code: cleanCode,
+      status: 'accepted',
+    });
+
+  if (insertError) {
+    console.error('فشل إنشاء الشراكة:', insertError.message);
+    return { success: false, error: 'تعذر تأكيد الشراكة، يرجى المحاولة لاحقاً.' };
+  }
+
+  // إرسال رسالة ترحيبية تلقائية في صندوق الشريكين
+  try {
+    await supabase.from('partner_messages').insert([
+      {
+        sender_id: currentUser.id,
+        receiver_id: inviterId,
+        message: 'قبلت دعوتك المباركة، نسأل الله أن يرزقنا الإخلاص والتثبيت سوياً 🤝🌿',
+        type: 'dua',
+      },
+      {
+        sender_id: inviterId,
+        receiver_id: currentUser.id,
+        message: `مرحباً بك يا أخي! سعدت بانضمامك رفيقاً للمسير والطاعات ✨`,
+        type: 'encouragement',
+      },
+    ]);
+  } catch (msgErr) {
+    console.warn('تنبيه إرسال الرسالة الترحيبية:', msgErr);
+  }
+
   revalidatePath('/');
   revalidatePath('/dashboard');
 
@@ -195,4 +257,127 @@ export async function acceptInviteCode(inviteCode: string) {
     partnerName: inviterName,
     message: `بارك الله فيكما! تم ربطك بنجاح مع رفيقك (${inviterName}).`,
   };
+}
+
+/**
+ * 4. إرسال تشجيع أو دعاء للشريك
+ */
+export async function sendPartnerEncouragement(customMessage?: string, messageType: string = 'encouragement') {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'يجب تسجيل الدخول لإرسال تشجيع لشريكك.' };
+  }
+
+  // البحث عن الشريك النشط
+  const { data: partnership } = await supabase
+    .from('partnerships')
+    .select('id, user_id_1, user_id_2')
+    .eq('status', 'accepted')
+    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+    .maybeSingle();
+
+  if (!partnership) {
+    return { success: false, error: 'ليس لديك شريك التزام نشط حالياً.' };
+  }
+
+  const partnerId = partnership.user_id_1 === user.id ? partnership.user_id_2 : partnership.user_id_1;
+  const messageText = customMessage?.trim() || 'ثبّتك الله وبارك في همّتك ووردك اليومي! 🌿';
+
+  const { error: insertError } = await supabase
+    .from('partner_messages')
+    .insert({
+      sender_id: user.id,
+      receiver_id: partnerId,
+      message: messageText,
+      type: messageType,
+    });
+
+  if (insertError) {
+    console.error('فشل إرسال التشجيع:', insertError.message);
+    return { success: false, error: 'تعذر إرسال التشجيع حالياً.' };
+  }
+
+  return {
+    success: true,
+    message: 'تم إرسال التشجيع والدعاء لرفيقك بنجاح! ✨',
+  };
+}
+
+/**
+ * 5. جلب رسائل وتشجيعات الشريك الواردة
+ */
+export async function getPartnerMessages(): Promise<Array<{
+  id: string;
+  senderId: string;
+  senderName: string;
+  message: string;
+  type: string;
+  createdAt: string;
+}>> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data: messages } = await supabase
+    .from('partner_messages')
+    .select('id, sender_id, message, type, created_at')
+    .eq('receiver_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (!messages || messages.length === 0) return [];
+
+  // جلب اسم المرسل
+  const senderIds = Array.from(new Set(messages.map((m) => m.sender_id)));
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .in('id', senderIds);
+
+  const profileMap = new Map(profiles?.map((p) => [p.id, p.full_name || 'رفيقك']) || []);
+
+  return messages.map((m) => ({
+    id: m.id,
+    senderId: m.sender_id,
+    senderName: profileMap.get(m.sender_id) || 'رفيقك',
+    message: m.message,
+    type: m.type,
+    createdAt: m.created_at,
+  }));
+}
+
+/**
+ * 6. إنهاء أو فك الارتباط بالشريك الحالي
+ */
+export async function disconnectPartner() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'غير مصرح لك.' };
+  }
+
+  const { error } = await supabase
+    .from('partnerships')
+    .delete()
+    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+
+  if (error) {
+    return { success: false, error: 'تعذر إلغاء الارتباط حالياً.' };
+  }
+
+  revalidatePath('/');
+  return { success: true, message: 'تم فك الارتباط بالشريك السابق بنجاح.' };
 }
