@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Flame, Bell, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar } from 'lucide-react';
+import { Sparkles, Flame, Bell, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '../lib/supabase/client';
 
@@ -51,9 +51,34 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
   const [isBellOpen, setIsBellOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const bellRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // قراءة حالة الثيم الحالي
+    if (typeof window !== 'undefined') {
+      const isDark = document.documentElement.classList.contains('dark') ||
+        localStorage.getItem('mueen_theme') === 'dark';
+      setIsDarkMode(isDark);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('mueen_theme', 'light');
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('mueen_theme', 'dark');
+      setIsDarkMode(true);
+    }
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -113,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
   const userAvatar = currentUser?.user_metadata?.avatar_url;
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-emerald-100 shadow-sm transition-all">
+    <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-emerald-100 dark:border-slate-800 shadow-sm transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* الشعار واسم المنصة */}
         <Link href="/" className="flex items-center gap-3 group">
@@ -121,9 +146,9 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-1.5">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-1.5">
               مُعين
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200/60">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-medium border border-emerald-200/60 dark:border-emerald-800/60">
                 شريك الالتزام
               </span>
             </h1>
@@ -131,21 +156,44 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
         </Link>
 
         {/* معلومات المستخدم وسلسلة الالتزام والأدوات */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* زر السجل الشهري - متاح للجميع */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
+          {/* زر الأذكار الجديد */}
+          <Link 
+            href="/adhkar"
+            className="flex items-center gap-1 sm:gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200/70 dark:border-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-xs"
+          >
+            <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>الأذكار</span>
+          </Link>
+
+          {/* زر السجل الشهري */}
           <Link 
             href="/progress"
-            className="flex items-center gap-1 sm:gap-1.5 bg-gray-50 text-gray-700 px-2.5 sm:px-3 py-1.5 rounded-full border border-gray-200/70 text-xs sm:text-sm font-semibold hover:bg-gray-100 hover:text-emerald-700 transition-colors shadow-xs"
+            className="flex items-center gap-1 sm:gap-1.5 bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200 px-2.5 sm:px-3 py-1.5 rounded-full border border-gray-200/70 dark:border-slate-700 text-xs sm:text-sm font-semibold hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shadow-xs"
           >
-            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
             <span>السجل</span>
           </Link>
 
           {/* عداد الالتزام المتواصل */}
-          <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full border border-amber-200/70 text-xs sm:text-sm font-semibold shadow-xs">
+          <div className="hidden md:flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-full border border-amber-200/70 dark:border-amber-800/70 text-xs sm:text-sm font-semibold shadow-xs">
             <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
-            <span>{userStreak} أيام التزام</span>
+            <span>{userStreak} أيام</span>
           </div>
+
+          {/* زر تبديل الوضع الليلي (Dark Mode Toggle) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="تبديل الوضع الليلي"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+          >
+            {isDarkMode ? (
+              <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 animate-in spin-in-180 duration-200" />
+            ) : (
+              <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 animate-in spin-in-180 duration-200" />
+            )}
+          </button>
 
           {/* قائمة التنبيهات (Notification Dropdown) */}
           <div className="relative" ref={bellRef}>
@@ -156,11 +204,11 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                 setIsBellOpen(!isBellOpen);
                 setIsProfileOpen(false);
               }}
-              className="p-2 rounded-full text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors relative cursor-pointer"
+              className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors relative cursor-pointer"
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white animate-pulse" />
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse" />
               )}
             </button>
 
@@ -168,13 +216,13 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
             {isBellOpen && (
               <div
                 dir="rtl"
-                className="absolute top-full right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
+                className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800 p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800 mb-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-gray-900 text-sm">التنبيهات</span>
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">التنبيهات</span>
                     {unreadCount > 0 && (
-                      <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-md">
+                      <span className="text-[11px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded-md">
                         {unreadCount} جديدة
                       </span>
                     )}
@@ -183,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                     <button
                       type="button"
                       onClick={markAllAsRead}
-                      className="text-xs text-emerald-700 hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                      className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
                     >
                       <CheckCheck className="w-3.5 h-3.5" />
                       <span>قراءة الكل</span>
@@ -198,24 +246,24 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                         key={notif.id}
                         className={`p-3 rounded-xl border text-xs transition-colors ${
                           notif.unread
-                            ? 'bg-emerald-50/40 border-emerald-100 text-gray-800'
-                            : 'bg-gray-50/60 border-gray-100 text-gray-600'
+                            ? 'bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 text-gray-800 dark:text-gray-200'
+                            : 'bg-gray-50/60 dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 text-gray-600 dark:text-gray-400'
                         }`}
                       >
-                        <div className="flex items-center justify-between font-semibold mb-1 text-gray-900">
+                        <div className="flex items-center justify-between font-semibold mb-1 text-gray-900 dark:text-white">
                           <span className="flex items-center gap-1">
                             {notif.type === 'partner' && <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />}
                             {notif.type === 'reminder' && <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
                             {notif.type === 'streak' && <Flame className="w-3.5 h-3.5 text-amber-500" />}
                             {notif.title}
                           </span>
-                          <span className="text-[10px] text-gray-400 font-normal">{notif.time}</span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">{notif.time}</span>
                         </div>
-                        <p className="text-gray-600 leading-relaxed text-[11px]">{notif.desc}</p>
+                        <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px]">{notif.desc}</p>
                       </div>
                     ))
                   ) : (
-                    <p className="text-center py-6 text-xs text-gray-400">لا توجد تنبيهات جديدة</p>
+                    <p className="text-center py-6 text-xs text-gray-400 dark:text-gray-500">لا توجد تنبيهات جديدة</p>
                   )}
                 </div>
               </div>
@@ -232,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                     setIsProfileOpen(!isProfileOpen);
                     setIsBellOpen(false);
                   }}
-                  className="w-9 h-9 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 font-semibold text-sm hover:ring-2 hover:ring-emerald-400/50 transition-all cursor-pointer overflow-hidden"
+                  className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 flex items-center justify-center text-emerald-800 dark:text-emerald-200 font-semibold text-sm hover:ring-2 hover:ring-emerald-400/50 transition-all cursor-pointer overflow-hidden"
                 >
                   {userAvatar ? (
                     <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
@@ -245,17 +293,17 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                 {isProfileOpen && (
                   <div
                     dir="rtl"
-                    className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
+                    className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800 p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    <div className="px-3 py-2 border-b border-gray-100 mb-2">
-                      <div className="font-bold text-gray-900 text-sm truncate">{userName}</div>
-                      <div className="text-[11px] text-gray-400 truncate">{currentUser.email}</div>
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 mb-2">
+                      <div className="font-bold text-gray-900 dark:text-white text-sm truncate">{userName}</div>
+                      <div className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{currentUser.email}</div>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleSignOut}
-                      className="w-full px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>تسجيل الخروج</span>

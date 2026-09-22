@@ -194,19 +194,19 @@ export default function DashboardPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-gray-900 font-sans">
+    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
       <Header userStreak={9} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* شريط تنبيه وضع الضيف للزوار غير المسجلين */}
         {!isLoggedIn && showGuestBanner && (
-          <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 shadow-xs animate-in fade-in duration-300">
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 shadow-xs animate-in fade-in duration-300">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
               </div>
               <p className="leading-relaxed">
-                <strong className="font-bold">وضع الحفظ المحلي:</strong> إنجازاتك تُحفظ حالياً على متصفحك. سجّل الدخول بحساب Google بضغطة واحدة لمزامنة بياناتك سحابياً ومشاركتها مع شريكك.
+                <strong className="font-bold">وضع الحفظ المحلي:</strong> إنجازاتك تُحفظ حالياً على جهازك. سجّل الدخول لحفظ بياناتك في السجل الشهري ومشاركتها مع رفيقك.
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
@@ -221,7 +221,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => setShowGuestBanner(false)}
                 aria-label="إغلاق التنبيه"
-                className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-100/60 transition-colors"
+                className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -251,13 +251,13 @@ export default function DashboardPage() {
           {/* العمود الجانبي: شريك الالتزام والفوائد */}
           <aside className="space-y-6">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                 رفيق المسير
               </span>
               <button
                 type="button"
                 onClick={() => setIsInviteModalOpen(true)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:underline cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>دعوة شريك</span>
@@ -271,12 +271,12 @@ export default function DashboardPage() {
             />
 
             {/* ومضة إيمانية */}
-            <div className="bg-emerald-900/5 border border-emerald-800/10 rounded-2xl p-5">
-              <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs mb-2">
-                <Quote className="w-4 h-4 text-emerald-700" />
+            <div className="bg-emerald-900/5 dark:bg-emerald-950/30 border border-emerald-800/10 dark:border-emerald-900/40 rounded-2xl p-5">
+              <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-bold text-xs mb-2">
+                <Quote className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 <span>قبس اليوم</span>
               </div>
-              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-serif">
+              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-serif">
                 «من صام يوماً في سبيل الله بعد الله وجهه عن النار سبعين خريفاً»
               </p>
             </div>

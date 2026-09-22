@@ -16,27 +16,27 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
       case 'صلاة':
         return {
           icon: <Compass className="w-3.5 h-3.5" />,
-          bg: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+          bg: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/60',
         };
       case 'قرآن':
         return {
           icon: <BookOpen className="w-3.5 h-3.5" />,
-          bg: 'bg-teal-50 text-teal-700 border-teal-200/70',
+          bg: 'bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border-teal-200/70 dark:border-teal-800/60',
         };
       case 'أذكار':
         return {
           icon: <Sun className="w-3.5 h-3.5" />,
-          bg: 'bg-amber-50 text-amber-700 border-amber-200/70',
+          bg: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/60',
         };
       case 'صيام':
         return {
           icon: <Moon className="w-3.5 h-3.5" />,
-          bg: 'bg-indigo-50 text-indigo-700 border-indigo-200/70',
+          bg: 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-800/60',
         };
       default:
         return {
           icon: <Clock className="w-3.5 h-3.5" />,
-          bg: 'bg-gray-50 text-gray-700 border-gray-200',
+          bg: 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700',
         };
     }
   };
@@ -48,8 +48,8 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
       onClick={() => onToggle(habit.id)}
       className={`group relative flex items-center justify-between p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
         habit.completed
-          ? 'bg-emerald-50/50 border-emerald-200/80 shadow-xs'
-          : 'bg-white border-gray-200/80 hover:border-emerald-300 hover:shadow-sm'
+          ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-800/50 shadow-xs'
+          : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700/60 hover:shadow-sm'
       }`}
     >
       {/* الجانب الأيمن: زر الاختيار والتفاصيل */}
@@ -67,7 +67,7 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
           className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all duration-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 shrink-0 cursor-pointer ${
             habit.completed
               ? 'bg-emerald-600 border-emerald-600 text-white scale-105 shadow-xs shadow-emerald-600/30'
-              : 'border-gray-300 bg-white group-hover:border-emerald-500'
+              : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 group-hover:border-emerald-500'
           }`}
         >
           {habit.completed && <Check className="w-4 h-4 stroke-[2.5]" />}
@@ -79,8 +79,24 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
             <Link
               href="/quran"
               onClick={(e) => e.stopPropagation()}
-              className={`text-sm sm:text-base font-semibold transition-colors duration-200 truncate block hover:text-emerald-700 hover:underline ${
-                habit.completed ? 'text-gray-400 line-through' : 'text-gray-900'
+              className={`text-sm sm:text-base font-semibold transition-colors duration-200 truncate block hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline ${
+                habit.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-slate-100'
+              }`}
+            >
+              {habit.title}
+            </Link>
+          ) : habit.category === 'أذكار' ? (
+            <Link
+              href={
+                habit.title.includes('صباح')
+                  ? '/adhkar?category=morning'
+                  : habit.title.includes('مساء')
+                  ? '/adhkar?category=evening'
+                  : '/adhkar'
+              }
+              onClick={(e) => e.stopPropagation()}
+              className={`text-sm sm:text-base font-semibold transition-colors duration-200 truncate block hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline ${
+                habit.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-slate-100'
               }`}
             >
               {habit.title}
@@ -88,14 +104,14 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
           ) : (
             <h3
               className={`text-sm sm:text-base font-semibold transition-colors duration-200 truncate ${
-                habit.completed ? 'text-gray-400 line-through' : 'text-gray-900'
+                habit.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-slate-100'
               }`}
             >
               {habit.title}
             </h3>
           )}
           {habit.timeHint && (
-            <span className="text-xs text-gray-400 mt-0.5 block truncate">
+            <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 block truncate">
               {habit.timeHint}
             </span>
           )}

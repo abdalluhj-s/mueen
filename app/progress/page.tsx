@@ -105,7 +105,7 @@ export default async function ProgressPage() {
   const monthName = new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(today);
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-gray-900 font-sans pb-12">
+    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200 pb-12">
       <Header userStreak={currentStreak} />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -113,20 +113,20 @@ export default async function ProgressPage() {
         {/* عنوان الصفحة */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-emerald-600" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               السجل الشهري
             </h1>
-            <p className="text-gray-500 mt-1">تتبع إنجازاتك ومدى التزامك خلال {monthName}</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">تتبع إنجازاتك ومدى التزامك خلال {monthName}</p>
           </div>
-          <Link href="/" className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
+          <Link href="/" className="px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
             العودة للرئيسية
           </Link>
         </div>
 
         {/* تنبيه وضع الضيف إذا لم يكن مسجلاً */}
         {!user && (
-          <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 shadow-xs animate-in fade-in">
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 shadow-xs animate-in fade-in">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
@@ -146,47 +146,47 @@ export default async function ProgressPage() {
 
         {/* بطاقات الإحصائيات */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center text-orange-500 dark:text-orange-400 shrink-0">
               <Flame className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">الشعلة الحالية (Streak)</p>
-              <p className="text-2xl font-bold text-gray-900">{currentStreak} <span className="text-base font-normal text-gray-500">أيام</span></p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">الشعلة الحالية (Streak)</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{currentStreak} <span className="text-base font-normal text-gray-500 dark:text-gray-400">أيام</span></p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
               <CheckCircle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">إجمالي الإنجازات</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCompletedThisMonth} <span className="text-base font-normal text-gray-500">عادة</span></p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">إجمالي الإنجازات</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalCompletedThisMonth} <span className="text-base font-normal text-gray-500 dark:text-gray-400">عادة</span></p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
               <Target className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">أيام الالتزام</p>
-              <p className="text-2xl font-bold text-gray-900">{activeDaysThisMonth} <span className="text-base font-normal text-gray-500">يوم</span></p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">أيام الالتزام</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeDaysThisMonth} <span className="text-base font-normal text-gray-500 dark:text-gray-400">يوم</span></p>
             </div>
           </div>
         </div>
 
         {/* التقويم الشهري */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">سجل شهر {monthName}</h2>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-50 dark:border-slate-800 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">سجل شهر {monthName}</h2>
           </div>
           
           <div className="p-6">
             <div className="grid grid-cols-7 gap-2 sm:gap-4 mb-2">
               {['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'].map(day => (
-                <div key={day} className="text-center text-xs font-semibold text-gray-400 py-2">
+                <div key={day} className="text-center text-xs font-semibold text-gray-400 dark:text-gray-500 py-2">
                   {day}
                 </div>
               ))}
@@ -195,24 +195,24 @@ export default async function ProgressPage() {
             <div className="grid grid-cols-7 gap-2 sm:gap-4">
               {/* الفراغات لبداية الشهر */}
               {Array.from({ length: startDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-square rounded-xl bg-gray-50/50"></div>
+                <div key={`empty-${i}`} className="aspect-square rounded-xl bg-gray-50/50 dark:bg-slate-800/30"></div>
               ))}
               
               {/* أيام الشهر */}
               {days.map((day) => {
                 // تحديد لون اليوم بناءً على عدد العادات المكتملة
-                let bgClass = "bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-100";
+                let bgClass = "bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-gray-300 border-gray-100 dark:border-slate-800";
                 
                 if (day.count > 0) {
                   if (day.count >= 8) {
-                    bgClass = "bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600 shadow-sm"; // ممتاز
+                    bgClass = "bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-600 dark:border-emerald-500 hover:bg-emerald-600 shadow-sm"; // ممتاز
                   } else if (day.count >= 4) {
-                    bgClass = "bg-emerald-300 text-emerald-900 border-emerald-400 hover:bg-emerald-400"; // جيد
+                    bgClass = "bg-emerald-300 dark:bg-emerald-800 text-emerald-950 dark:text-emerald-100 border-emerald-400 dark:border-emerald-700 hover:bg-emerald-400"; // جيد
                   } else {
-                    bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200"; // قليل
+                    bgClass = "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-200"; // قليل
                   }
                 } else if (day.dateString === todayStr) {
-                  bgClass = "bg-white border-2 border-emerald-500 text-gray-900 font-bold"; // اليوم الحالي ولم ينجز بعد
+                  bgClass = "bg-white dark:bg-slate-900 border-2 border-emerald-500 text-gray-900 dark:text-white font-bold"; // اليوم الحالي ولم ينجز بعد
                 }
 
                 return (
@@ -224,7 +224,7 @@ export default async function ProgressPage() {
                     
                     {/* Tooltip */}
                     {day.count > 0 && (
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 dark:bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 border border-slate-700">
                         أنجزت {day.count} عادة
                       </div>
                     )}
@@ -233,21 +233,21 @@ export default async function ProgressPage() {
               })}
             </div>
             
-            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-500 border-t border-gray-100 pt-6">
+            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-slate-800 pt-6">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-gray-50 border border-gray-100"></div>
+                <div className="w-4 h-4 rounded bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700"></div>
                 <span>لم ينجز</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-emerald-100 border border-emerald-200"></div>
+                <div className="w-4 h-4 rounded bg-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-900"></div>
                 <span>قليل</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-emerald-300 border border-emerald-400"></div>
+                <div className="w-4 h-4 rounded bg-emerald-300 dark:bg-emerald-800 border border-emerald-400 dark:border-emerald-700"></div>
                 <span>جيد</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-emerald-500 border border-emerald-600"></div>
+                <div className="w-4 h-4 rounded bg-emerald-500 dark:bg-emerald-600 border border-emerald-600 dark:border-emerald-500"></div>
                 <span>ممتاز</span>
               </div>
             </div>

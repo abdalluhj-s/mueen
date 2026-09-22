@@ -40,19 +40,19 @@ export default function QuranPage() {
   const currentSurah = SURAHS.find((s) => s.num === selectedSurah) ?? SURAHS[0];
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-gray-900 font-sans">
+    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
       {/* الشريط العلوي */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+      <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-emerald-100 dark:border-slate-800 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
           >
             <ArrowRight className="w-4 h-4" />
             <span>العودة للوحة التحكم</span>
           </Link>
 
-          <div className="flex items-center gap-2 text-emerald-800">
+          <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
             <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center">
               <BookOpen className="w-4 h-4" />
             </div>
@@ -99,20 +99,20 @@ export default function QuranPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* عارض القرآن الرئيسي */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs overflow-hidden transition-colors">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-emerald-700" />
-                <span className="font-bold text-gray-900 text-sm">
+                <BookOpen className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                <span className="font-bold text-gray-900 dark:text-white text-sm">
                   سورة {currentSurah.name}
                 </span>
-                <span className="text-xs text-gray-400">({currentSurah.verses} آية)</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">({currentSurah.verses} آية)</span>
               </div>
               <a
                 href={`https://quran.com/ar/${selectedSurah}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:underline font-medium"
+                className="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 hover:underline font-medium"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>فتح في quran.com</span>
@@ -121,7 +121,7 @@ export default function QuranPage() {
 
             {/* الـ iframe أو الرسالة البديلة */}
             {!iframeError ? (
-              <div className="relative">
+              <div className="relative bg-white dark:bg-slate-950">
                 <iframe
                   key={selectedSurah}
                   src={`https://quran.com/ar/${selectedSurah}`}
@@ -135,12 +135,12 @@ export default function QuranPage() {
             ) : (
               /* بديل إذا رفض iframe التحميل */
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
                   <Globe className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-1">افتح القرآن في نافذة جديدة</h3>
-                  <p className="text-xs text-gray-500 leading-relaxed">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-1">افتح القرآن في نافذة جديدة</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                     بعض الأجهزة لا تدعم التضمين المباشر. اضغط على الزر لفتح المصحف في تبويب منفصل.
                   </p>
                 </div>
@@ -161,9 +161,9 @@ export default function QuranPage() {
           {/* الشريط الجانبي: روابط سريعة */}
           <div className="space-y-4">
             {/* روابط مواقع القرآن */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs">
-              <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-emerald-700" />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/80 dark:border-slate-800 p-4 shadow-xs transition-colors">
+              <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 مواقع القرآن المعتمدة
               </h3>
               <div className="space-y-2">
@@ -173,20 +173,20 @@ export default function QuranPage() {
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 p-3 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all text-sm font-medium text-gray-700 hover:text-emerald-800 group"
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-gray-100 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-all text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-emerald-800 dark:hover:text-emerald-300 group"
                   >
-                    <span className="text-emerald-600">{link.icon}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">{link.icon}</span>
                     <span className="flex-1">{link.label}</span>
-                    <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover:text-emerald-500 transition-colors" />
+                    <ExternalLink className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-emerald-500 transition-colors" />
                   </a>
                 ))}
               </div>
             </div>
 
             {/* قائمة السور الكاملة */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs">
-              <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                <ChevronDown className="w-4 h-4 text-emerald-700" />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/80 dark:border-slate-800 p-4 shadow-xs transition-colors">
+              <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
+                <ChevronDown className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 اختر سورة
               </h3>
               <div className="space-y-1 max-h-64 overflow-y-auto">
@@ -201,7 +201,7 @@ export default function QuranPage() {
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                       selectedSurah === s.num
                         ? 'bg-emerald-700 text-white'
-                        : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-800'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-800 dark:hover:text-emerald-300'
                     }`}
                   >
                     <span>{s.name}</span>
@@ -209,12 +209,12 @@ export default function QuranPage() {
                   </button>
                 ))}
               </div>
-              <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                 <a
                   href="https://quran.com/ar"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 text-xs text-emerald-700 hover:underline font-medium"
+                  className="flex items-center justify-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 hover:underline font-medium"
                 >
                   <span>عرض جميع السور (114 سورة)</span>
                   <ExternalLink className="w-3 h-3" />
@@ -223,11 +223,11 @@ export default function QuranPage() {
             </div>
 
             {/* بطاقة تذكير */}
-            <div className="bg-emerald-900/5 border border-emerald-800/10 rounded-2xl p-4">
-              <p className="text-xs text-gray-700 leading-relaxed font-serif text-center">
+            <div className="bg-emerald-900/5 dark:bg-emerald-950/30 border border-emerald-800/10 dark:border-emerald-900/40 rounded-2xl p-4 transition-colors">
+              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-serif text-center">
                 «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»
               </p>
-              <p className="text-[11px] text-gray-400 text-center mt-1">صحيح البخاري</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-1">صحيح البخاري</p>
             </div>
           </div>
         </div>
