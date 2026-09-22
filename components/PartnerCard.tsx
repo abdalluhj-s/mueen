@@ -150,7 +150,15 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
         <div className="flex items-center gap-1.5">
           <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 px-2.5 py-1 rounded-full border border-emerald-200/70 dark:border-emerald-800/60">
             <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-            <span>{partner.streakDays} أيام معاً</span>
+            <span>
+              {partner.streakDays <= 1
+                ? 'اليوم الأول معاً'
+                : partner.streakDays === 2
+                ? 'يومان معاً'
+                : partner.streakDays >= 3 && partner.streakDays <= 10
+                ? `${partner.streakDays} أيام معاً`
+                : `${partner.streakDays} يوماً معاً`}
+            </span>
           </span>
 
           {/* زر التحديث */}

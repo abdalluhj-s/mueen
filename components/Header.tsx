@@ -118,6 +118,15 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('mueen_user_avatar');
+      if (saved) setLocalAvatar(saved);
+    }
+  }, []);
+
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   const markAllAsRead = () => {
@@ -137,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
   };
 
   const userName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'ضيف مُعين';
-  const userAvatar = currentUser?.user_metadata?.avatar_url;
+  const userAvatar = localAvatar || currentUser?.user_metadata?.avatar_url;
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-emerald-100 dark:border-slate-800 shadow-sm transition-colors duration-200">
@@ -159,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
 
         {/* معلومات المستخدم وسلسلة الالتزام والأدوات */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
-          {/* زر الأذكار الجديد (يظهر على الشاشات الأكبر لأنه متاح بالشريط السفلي للهاتف) */}
+          {/* زر الأذكار الجديد */}
           <Link 
             href="/adhkar"
             className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200/70 dark:border-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-xs"
@@ -177,10 +186,18 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
             <span>السجل</span>
           </Link>
 
-          {/* عداد الالتزام المتواصل */}
+          {/* عداد الالتزام المتواصل المحسوب واقعياً */}
           <div className="hidden md:flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-full border border-amber-200/70 dark:border-amber-800/70 text-xs sm:text-sm font-semibold shadow-xs">
             <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
-            <span>{userStreak} أيام</span>
+            <span>
+              {userStreak <= 1
+                ? 'اليوم الأول'
+                : userStreak === 2
+                ? 'يومان متتاليان'
+                : userStreak >= 3 && userStreak <= 10
+                ? `${userStreak} أيام متتالية`
+                : `${userStreak} يوماً متتالياً`}
+            </span>
           </div>
 
           {/* زر تبديل الوضع الليلي (Dark Mode Toggle) */}
@@ -197,7 +214,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
             )}
           </button>
 
-          {/* قائمة التنبيهات (Notification Dropdown) */}
+          {/* قائمة التنبيهات (Notification Dropdown المتجاوبة والآمنة للشاشات الصغيرة) */}
           <div className="relative" ref={bellRef}>
             <button
               type="button"
@@ -214,61 +231,68 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
               )}
             </button>
 
-            {/* نافذة التنبيهات المنبثقة */}
+            {/* نافذة التنبيهات المنبثقة المحمية من الخروج خارج شاشة الموبايل */}
             {isBellOpen && (
-              <div
-                dir="rtl"
-                className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800 p-4 z-50 animate-in fade-in zoom-in-95 duration-150"
-              >
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800 mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-gray-900 dark:text-white text-sm">التنبيهات</span>
+              <>
+                {/* خلفية شبه شفافة للموبايل لإغلاق القائمة بسلاسة */}
+                <div
+                  className="fixed inset-0 bg-black/40 backdrop-blur-2xs z-40 sm:hidden"
+                  onClick={() => setIsBellOpen(false)}
+                />
+                <div
+                  dir="rtl"
+                  className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:left-0 sm:right-auto sm:top-full sm:mt-2 w-auto sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-4 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] overflow-y-auto"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800 mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-gray-900 dark:text-white text-sm">التنبيهات</span>
+                      {unreadCount > 0 && (
+                        <span className="text-[11px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded-md">
+                          {unreadCount} جديدة
+                        </span>
+                      )}
+                    </div>
                     {unreadCount > 0 && (
-                      <span className="text-[11px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded-md">
-                        {unreadCount} جديدة
-                      </span>
+                      <button
+                        type="button"
+                        onClick={markAllAsRead}
+                        className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                      >
+                        <CheckCheck className="w-3.5 h-3.5" />
+                        <span>قراءة الكل</span>
+                      </button>
                     )}
                   </div>
-                  {unreadCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={markAllAsRead}
-                      className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
-                    >
-                      <CheckCheck className="w-3.5 h-3.5" />
-                      <span>قراءة الكل</span>
-                    </button>
-                  )}
-                </div>
 
-                <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {notifications.length > 0 ? (
-                    notifications.map((notif) => (
-                      <div
-                        key={notif.id}
-                        className={`p-3 rounded-xl border text-xs transition-colors ${
-                          notif.unread
-                            ? 'bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 text-gray-800 dark:text-gray-200'
-                            : 'bg-gray-50/60 dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 text-gray-600 dark:text-gray-400'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between font-semibold mb-1 text-gray-900 dark:text-white">
-                          <span className="flex items-center gap-1">
-                            {notif.type === 'partner' && <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />}
-                            {notif.type === 'reminder' && <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
-                            {notif.type === 'streak' && <Flame className="w-3.5 h-3.5 text-amber-500" />}
-                            {notif.title}
-                          </span>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">{notif.time}</span>
+                  <div className="space-y-2">
+                    {notifications.length > 0 ? (
+                      notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          className={`p-3 rounded-2xl border text-xs transition-colors ${
+                            notif.unread
+                              ? 'bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 text-gray-800 dark:text-gray-200'
+                              : 'bg-gray-50/60 dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 text-gray-600 dark:text-gray-400'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between font-semibold mb-1 text-gray-900 dark:text-white">
+                            <span className="flex items-center gap-1.5">
+                              {notif.type === 'partner' && <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />}
+                              {notif.type === 'reminder' && <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
+                              {notif.type === 'streak' && <Flame className="w-3.5 h-3.5 text-amber-500" />}
+                              <span>{notif.title}</span>
+                            </span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">{notif.time}</span>
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px] pr-5">{notif.desc}</p>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px]">{notif.desc}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-center py-6 text-xs text-gray-400 dark:text-gray-500">لا توجد تنبيهات جديدة</p>
-                  )}
+                      ))
+                    ) : (
+                      <p className="text-center py-6 text-xs text-gray-400 dark:text-gray-500">لا توجد تنبيهات جديدة</p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 

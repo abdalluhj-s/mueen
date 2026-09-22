@@ -8,7 +8,7 @@ import { PartnerCard } from '../components/PartnerCard';
 import { PartnerInviteModal } from '../components/PartnerInviteModal';
 import { AddHabitModal } from '../components/AddHabitModal';
 import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
-import { toggleHabitCompletion, fetchPartnerProgress } from './actions/habits';
+import { toggleHabitCompletion, fetchPartnerProgress, getUserRealStreak } from './actions/habits';
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
 import { createClient } from '../lib/supabase/client';
 import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell } from 'lucide-react';
@@ -61,6 +61,7 @@ export default function DashboardPage() {
   const [habits, setHabits] = useState<HabitItem[]>(() => loadHabitsFromStorage());
   const [partner, setPartner] = useState<PartnerStatus | null>(null);
   const [partnerMessages, setPartnerMessages] = useState<PartnerMessage[]>([]);
+  const [userStreak, setUserStreak] = useState<number>(1);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -102,7 +103,7 @@ export default function DashboardPage() {
 
   const { gregorian, hijri } = getFormattedDates();
 
-  // جلب إنجاز ورسائل الشريك
+  // جلب إنجاز ورسائل الشريك والستريك الحقيقي
   const loadPartnerData = async () => {
     try {
       const partnerData = await fetchPartnerProgress();
@@ -110,8 +111,11 @@ export default function DashboardPage() {
 
       const msgs = await getPartnerMessages();
       setPartnerMessages(msgs || []);
+
+      const realStreak = await getUserRealStreak();
+      if (realStreak > 0) setUserStreak(realStreak);
     } catch (err) {
-      console.warn('تعذر جلب بيانات الشريك:', err);
+      console.warn('تعذر جلب بيانات الشريك والستريك:', err);
     }
   };
 
@@ -212,7 +216,7 @@ export default function DashboardPage() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
-      <Header userStreak={9} />
+      <Header userStreak={userStreak} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* إشعار عائم بالنجاح أو تأكيد الشريك */}

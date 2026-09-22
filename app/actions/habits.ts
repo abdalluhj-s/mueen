@@ -145,6 +145,15 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
 
   const encouragedToday = !!encouragementRecord;
 
+  // حساب عدد الأيام معاً بشكل واقعي من تاريخ إنشاء الشراكة
+  let daysTogether = 1;
+  if (partnership.created_at) {
+    const start = new Date(partnership.created_at).getTime();
+    const now = Date.now();
+    const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
+    daysTogether = Math.max(1, diffDays);
+  }
+
   if (!partnerHabits || partnerHabits.length === 0) {
     return {
       id: partnerId,
@@ -152,7 +161,7 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
       avatarUrl: profile?.avatar_url,
       completedCount: 0,
       totalHabits: 11,
-      streakDays: 1,
+      streakDays: daysTogether,
       lastActiveTime: 'اليوم',
       encouragedToday,
     };
@@ -179,9 +188,76 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
     avatarUrl: profile?.avatar_url,
     completedCount: completedCount,
     totalHabits: totalHabits,
-    streakDays: completedCount > 0 ? 3 : 1,
+    streakDays: daysTogether,
     lastActiveTime: completedCount > 0 ? 'اليوم (نشط)' : 'منذ قليل',
     encouragedToday,
   };
 }
+
+/**
+ * 3. دالة لحساب سلسلة الالتزام الحقيقية (Streak) للمستخدم من واقع السجلات
+ */
+export async function getUserRealStreak(): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  // جلب عادات المستخدم
+  const { data: userHabits } = await supabase
+    .from('user_habits')
+    .select('id')
+    .eq('user_id', user.id);
+
+  if (!userHabits || userHabits.length === 0) return 0;
+
+  const habitIds = userHabits.map((h) => h.id);
+
+  // جلب التواريخ المكتملة
+  const { data: completedLogs } = await supabase
+    .from('daily_logs')
+    .select('date')
+    .in('user_habit_id', habitIds)
+    .eq('completed', true);
+
+  if (!completedLogs || completedLogs.length === 0) return 0;
+
+  const activeDates = new Set(completedLogs.map((l) => l.date));
+
+  const today = new Date();
+  const formatDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const todayStr = formatDate(today);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = formatDate(yesterday);
+
+  let streak = 0;
+  let checkDate = new Date(today);
+
+  // إذا لم ينجز اليوم شيئاً بعد، نفحص إذا كان أمس منجزاً ليستمر الستريك
+  if (!activeDates.has(todayStr)) {
+    if (activeDates.has(yesterdayStr)) {
+      checkDate = yesterday;
+    } else {
+      return 0;
+    }
+  }
+
+  while (true) {
+    const ds = formatDate(checkDate);
+    if (activeDates.has(ds)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 

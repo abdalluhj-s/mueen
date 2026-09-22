@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   BookOpen,
   ArrowRight,
-  ExternalLink,
   ChevronRight,
   ChevronLeft,
   Play,
@@ -16,25 +15,38 @@ import {
   Volume2,
   VolumeX,
   CheckCircle2,
-  ListFilter,
-  Type,
-  AlignJustify,
-  Layers,
+  Check,
   Sparkles,
   Loader2,
-  Headphones,
+  Bookmark,
+  Target,
+  FileText,
+  Layers,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { ALL_SURAHS, SurahMeta } from '../../data/surahs';
+import { toggleHabitCompletion } from '../actions/habits';
 
 // السور الأكثر قراءة للوصول السريع
 const POPULAR_SURAHS = [1, 2, 18, 36, 55, 56, 67, 78, 112, 113, 114];
+
+// خيارات نوع الورد اليومي
+type WardType = 'half_hizb' | 'full_hizb' | 'juz' | 'pages' | 'surah';
+
+const WARD_OPTIONS = [
+  { id: 'half_hizb', label: 'نصف حزب', sub: 'نحو ٥ صفحات' },
+  { id: 'full_hizb', label: 'حزب كامل', sub: 'نحو ١٠ صفحات' },
+  { id: 'juz', label: 'جزء كامل', sub: '٢٠ صفحة (جزء)' },
+  { id: 'pages', label: 'صفحات محددة', sub: 'اختر عدد الصفحات' },
+  { id: 'surah', label: 'سورة معينة', sub: 'اختر من الفهرس' },
+];
 
 // تحويل الأرقام إلى أرقام عربية مشرقية ﴿١﴾
 const toArabicNumerals = (num: number): string => {
   return num.toString().replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[parseInt(d, 10)]);
 };
 
-// بديل أوفلاين لسورة الفاتحة والإخلاص
+// بديل أوفلاين فوري لسورة الفاتحة والإخلاص والملك والمعوذات
 const OFFLINE_FALLBACKS: Record<number, { text: string; numberInSurah: number }[]> = {
   1: [
     { numberInSurah: 1, text: 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ' },
@@ -51,6 +63,21 @@ const OFFLINE_FALLBACKS: Record<number, { text: string; numberInSurah: number }[
     { numberInSurah: 3, text: 'لَمۡ یَلِدۡ وَلَمۡ یُوۡلَدۡ' },
     { numberInSurah: 4, text: 'وَلَمۡ یَكُن لَّهُۥ كُفُوًا أَحَدُۢ' },
   ],
+  113: [
+    { numberInSurah: 1, text: 'قُلۡ أَعُوذُ بِرَبِّ ٱلۡفَلَقِ' },
+    { numberInSurah: 2, text: 'مِن شَرِّ مَا خَلَقَ' },
+    { numberInSurah: 3, text: 'وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ' },
+    { numberInSurah: 4, text: 'وَمِن شَرِّ ٱلنَّفَّـٰثَـٰتِ فِی ٱلۡعُقَدِ' },
+    { numberInSurah: 5, text: 'وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ' },
+  ],
+  114: [
+    { numberInSurah: 1, text: 'قُلۡ أَعُوذُ بِرَبِّ ٱلنَّاسِ' },
+    { numberInSurah: 2, text: 'مَلِكِ ٱلنَّاسِ' },
+    { numberInSurah: 3, text: 'إِلَـٰهِ ٱلنَّاسِ' },
+    { numberInSurah: 4, text: 'مِن شَرِّ ٱلۡوَسۡوَاسِ ٱلۡخَنَّاسِ' },
+    { numberInSurah: 5, text: 'ٱلَّذِی یُوَسۡوِسُ فِی صُدُورِ ٱلنَّاسِ' },
+    { numberInSurah: 6, text: 'مِنَ ٱلۡجِنَّةِ وَٱلنَّاسِ' },
+  ],
 };
 
 interface Ayah {
@@ -59,17 +86,28 @@ interface Ayah {
   text: string;
 }
 
-export default function QuranPage() {
+export default function QuranWardPage() {
+  // إعدادات الورد اليومي
+  const [wardType, setWardType] = useState<WardType>('half_hizb');
+  const [wardTargetJuz, setWardTargetJuz] = useState<number>(1);
+  const [wardTargetHizb, setWardTargetHizb] = useState<number>(1);
+  const [wardPageCount, setWardPageCount] = useState<number>(4);
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
+
+  // حالة إنجاز ورد اليوم
+  const [isWardDone, setIsWardDone] = useState<boolean>(false);
+  const [showWardToast, setShowWardToast] = useState<boolean>(false);
+
+  // الآيات والقارئ
   const [ayahs, setAyahs] = useState<Ayah[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // إعدادات العرض وتخصيص الخط
+  // الخط والعرض
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'huge'>('large');
   const [viewMode, setViewMode] = useState<'mushaf' | 'cards'>('mushaf');
 
-  // فهرس السور والبحث
+  // فهرس السور
   const [isIndexOpen, setIsIndexOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -81,36 +119,39 @@ export default function QuranPage() {
   const [audioLoading, setAudioLoading] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // تسجيل ورد اليوم
-  const [isWardDone, setIsWardDone] = useState<boolean>(false);
-  const [showWardToast, setShowWardToast] = useState<boolean>(false);
-
-  // ذاكرة تخزين مؤقت للسور المحملة لتقليل الطلبات
   const surahsCache = useRef<Record<number, Ayah[]>>({});
 
   const currentSurahMeta = useMemo(() => {
     return ALL_SURAHS.find((s) => s.num === selectedSurah) ?? ALL_SURAHS[0];
   }, [selectedSurah]);
 
-  // التحقق من حالة ورد اليوم
+  // قراءة تفضيلات وحالة الورد لليوم الحالي
   useEffect(() => {
-    const todayKey = `mueen_ward_${new Date().toISOString().split('T')[0]}_${selectedSurah}`;
+    const today = new Date().toISOString().split('T')[0];
+    const todayKey = `mueen_ward_${today}`;
     setIsWardDone(localStorage.getItem(todayKey) === 'true');
-  }, [selectedSurah]);
 
-  // جلب آيات السورة
+    const savedType = localStorage.getItem('mueen_ward_type') as WardType | null;
+    if (savedType) setWardType(savedType);
+
+    const savedJuz = localStorage.getItem('mueen_ward_juz');
+    if (savedJuz) setWardTargetJuz(parseInt(savedJuz, 10));
+
+    const savedPages = localStorage.getItem('mueen_ward_pages');
+    if (savedPages) setWardPageCount(parseInt(savedPages, 10));
+  }, []);
+
+  // جلب آيات السورة الحالية
   useEffect(() => {
     let isCancelled = false;
 
     const fetchSurah = async () => {
-      // إيقاف الصوت مؤقتاً عند تبديل السورة
       if (audioRef.current) {
         audioRef.current.pause();
         setIsPlaying(false);
         setCurrentTime(0);
       }
 
-      // إذا كانت مخزنة مؤقتاً
       if (surahsCache.current[selectedSurah]) {
         setAyahs(surahsCache.current[selectedSurah]);
         setIsLoading(false);
@@ -141,9 +182,8 @@ export default function QuranPage() {
         } else {
           throw new Error('بيانات غير صحيحة');
         }
-      } catch (err) {
+      } catch {
         if (!isCancelled) {
-          // استخدام البديل إن وجد
           if (OFFLINE_FALLBACKS[selectedSurah]) {
             setAyahs(
               OFFLINE_FALLBACKS[selectedSurah].map((a, idx) => ({
@@ -154,7 +194,7 @@ export default function QuranPage() {
             );
             setIsLoading(false);
           } else {
-            setLoadError('تعذر تحميل السورة حالياً. يرجى التحقق من الاتصال بالإنترنت.');
+            setLoadError('تعذر تحميل نص السورة حالياً، يرجى المحاولة بعد قليل.');
             setIsLoading(false);
           }
         }
@@ -168,13 +208,12 @@ export default function QuranPage() {
     };
   }, [selectedSurah]);
 
-  // رابط التلاوة الصوتية
+  // تلاوة السورة بصوت الشيخ مشاري العفاسي
   const audioUrl = useMemo(() => {
     const padded = String(selectedSurah).padStart(3, '0');
     return `https://server8.mp3quran.net/afs/${padded}.mp3`;
   }, [selectedSurah]);
 
-  // إدارة تشغيل الصوت
   const togglePlayAudio = () => {
     if (!audioRef.current) return;
 
@@ -211,21 +250,56 @@ export default function QuranPage() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // تسجيل إتمام الورد
+  // تسجيل إتمام ورد اليوم ومزامنته مع العادات ولوحة التحكم
   const handleMarkWardDone = () => {
-    const todayKey = `mueen_ward_${new Date().toISOString().split('T')[0]}_${selectedSurah}`;
+    const today = new Date().toISOString().split('T')[0];
+    const todayKey = `mueen_ward_${today}`;
     const nextState = !isWardDone;
     setIsWardDone(nextState);
+
     if (nextState) {
       localStorage.setItem(todayKey, 'true');
       setShowWardToast(true);
-      setTimeout(() => setShowWardToast(false), 4000);
+      setTimeout(() => setShowWardToast(false), 5000);
+
+      // تحديث العادات محلياً لظهور الورد منجزاً في الصفحة الرئيسية
+      try {
+        const savedHabits = localStorage.getItem('mueen_habits');
+        if (savedHabits) {
+          const parsed = JSON.parse(savedHabits);
+          const updated = parsed.map((h: any) =>
+            h.id === 'h8' || h.category === 'قرآن' ? { ...h, completed: true } : h
+          );
+          localStorage.setItem('mueen_habits', JSON.stringify(updated));
+        }
+      } catch {
+        // ignore
+      }
+
+      // المزامنة السحابية في الخلفية
+      toggleHabitCompletion('h8', today, true, {
+        title: 'ورد القرآن اليومي',
+        category: 'قرآن',
+      }).catch(() => {});
     } else {
       localStorage.removeItem(todayKey);
+      try {
+        const savedHabits = localStorage.getItem('mueen_habits');
+        if (savedHabits) {
+          const parsed = JSON.parse(savedHabits);
+          const updated = parsed.map((h: any) =>
+            h.id === 'h8' || h.category === 'قرآن' ? { ...h, completed: false } : h
+          );
+          localStorage.setItem('mueen_habits', JSON.stringify(updated));
+        }
+      } catch {
+        // ignore
+      }
+      toggleHabitCompletion('h8', today, false).catch(() => {});
     }
   };
 
-  // تصفية السور للبحث
+  // تصفية السور
   const filteredSurahs = useMemo(() => {
     if (!searchQuery.trim()) return ALL_SURAHS;
     const q = searchQuery.trim().toLowerCase();
@@ -238,7 +312,7 @@ export default function QuranPage() {
     );
   }, [searchQuery]);
 
-  // تنسيق نصوص الآيات وحذف البسملة المكررة في أول آية إذا لم تكن الفاتحة
+  // إزالة البسملة المكررة
   const cleanAyahText = (ayah: Ayah): string => {
     if (selectedSurah !== 1 && ayah.numberInSurah === 1) {
       const bismillah = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
@@ -253,452 +327,456 @@ export default function QuranPage() {
     return ayah.text;
   };
 
-  // حجم الخط
-  const fontClass =
-    fontSize === 'normal'
-      ? 'text-lg sm:text-xl leading-relaxed sm:leading-loose'
-      : fontSize === 'large'
-      ? 'text-xl sm:text-2xl leading-loose sm:leading-[2.4]'
-      : 'text-2xl sm:text-3xl leading-loose sm:leading-[2.7]';
+  const getFontSizeClass = () => {
+    switch (fontSize) {
+      case 'normal':
+        return 'text-xl sm:text-2xl leading-[2.6rem]';
+      case 'huge':
+        return 'text-3xl sm:text-4xl leading-[3.8rem]';
+      case 'large':
+      default:
+        return 'text-2xl sm:text-3xl leading-[3.2rem]';
+    }
+  };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200 overflow-x-hidden">
-      {/* عنصر الصوت الخفي */}
-      <audio
-        ref={audioRef}
-        src={audioUrl}
-        preload="metadata"
-        onTimeUpdate={() => {
-          if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
-        }}
-        onLoadedMetadata={() => {
-          if (audioRef.current) {
-            setDuration(audioRef.current.duration);
-            setAudioLoading(false);
-          }
-        }}
-        onEnded={() => {
-          setIsPlaying(false);
-          setCurrentTime(0);
-        }}
-        onError={() => {
-          setAudioLoading(false);
-          setIsPlaying(false);
-        }}
-      />
-
-      {/* الشريط العلوي المصمم كتطبيق موبايل */}
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200/80 dark:border-slate-800 shadow-xs">
-        <div className="max-w-3xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+    <div
+      dir="rtl"
+      className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200 pb-24 sm:pb-12"
+    >
+      {/* شريط الرأس */}
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-emerald-100 dark:border-slate-800 shadow-2xs">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 p-1.5 -mr-1.5 rounded-xl transition-colors active:scale-95"
+            className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 transition-colors"
           >
             <ArrowRight className="w-4 h-4" />
-            <span className="hidden xs:inline">الرئيسية</span>
+            <span>العودة للرئيسية</span>
           </Link>
 
-          {/* زر فتح فهرس السور الكامل */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-xs">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <h1 className="font-bold text-base sm:text-lg">ورد القرآن الكريم</h1>
+          </div>
+
           <button
             type="button"
             onClick={() => setIsIndexOpen(true)}
-            className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-200/70 dark:border-emerald-800 text-xs sm:text-sm font-bold shadow-xs transition-transform active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
           >
-            <BookOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>سورة {currentSurahMeta.name}</span>
-            <span className="text-[11px] opacity-70 font-normal">({toArabicNumerals(currentSurahMeta.verses)} آية)</span>
-            <Search className="w-3 h-3 text-emerald-600 mr-1" />
+            <Bookmark className="w-3.5 h-3.5" />
+            <span>فهرس السور</span>
           </button>
-
-          {/* أدوات التحكم في حجم الخط وطريقة العرض */}
-          <div className="flex items-center gap-1">
-            {/* تبديل طريقة العرض (مصحف / بطاقات) */}
-            <button
-              type="button"
-              onClick={() => setViewMode((m) => (m === 'mushaf' ? 'cards' : 'mushaf'))}
-              title={viewMode === 'mushaf' ? 'التبديل إلى بطاقات الآيات' : 'التبديل إلى المصحف المتصل'}
-              className="p-1.5 sm:p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              {viewMode === 'mushaf' ? (
-                <Layers className="w-4 h-4" />
-              ) : (
-                <AlignJustify className="w-4 h-4" />
-              )}
-            </button>
-
-            {/* تكبير/تصغير الخط */}
-            <button
-              type="button"
-              onClick={() => {
-                if (fontSize === 'normal') setFontSize('large');
-                else if (fontSize === 'large') setFontSize('huge');
-                else setFontSize('normal');
-              }}
-              title="تغيير حجم الخط"
-              className="px-2 py-1 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 border border-gray-200/70 dark:border-slate-700 transition-colors"
-            >
-              <span className="text-xs">A</span>
-              <span className="text-[10px] font-normal mr-0.5">
-                {fontSize === 'normal' ? '١' : fontSize === 'large' ? '٢' : '٣'}
-              </span>
-            </button>
-          </div>
         </div>
       </header>
 
-      {/* المحتوى الرئيسي */}
-      <main className="max-w-3xl mx-auto px-3 sm:px-6 py-4 space-y-4">
-        {/* شريط السور السريع (أفقي قابل للتمرير بسلاسة باللمس) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 -mx-3 px-3">
-          <button
-            type="button"
-            onClick={() => setIsIndexOpen(true)}
-            className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-700 text-white shadow-xs hover:bg-emerald-800 transition-all cursor-pointer"
-          >
-            <ListFilter className="w-3.5 h-3.5" />
-            <span>كل السور (١١٤)</span>
-          </button>
-          {POPULAR_SURAHS.map((num) => {
-            const s = ALL_SURAHS.find((item) => item.num === num);
-            if (!s) return null;
-            const isSelected = selectedSurah === num;
-            return (
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* ======================= بطاقة تحديد نوع ورد اليوم ======================= */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-emerald-100/90 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-emerald-600" />
+              <h2 className="font-bold text-sm sm:text-base">تحديد هدف ورد اليوم</h2>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200/70">
+              «خير الأعمال أدومها»
+            </span>
+          </div>
+
+          {/* تبويبات خيارات نوع الورد */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {WARD_OPTIONS.map((opt) => (
               <button
-                key={num}
+                key={opt.id}
                 type="button"
-                onClick={() => setSelectedSurah(num)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white shadow-sm scale-102'
-                    : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-slate-800 border border-gray-200/80 dark:border-slate-800'
+                onClick={() => {
+                  setWardType(opt.id as WardType);
+                  try {
+                    localStorage.setItem('mueen_ward_type', opt.id);
+                  } catch {
+                    // ignore
+                  }
+                }}
+                className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                  wardType === opt.id
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.02]'
+                    : 'bg-gray-50/70 dark:bg-slate-800/60 border-gray-200/80 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:border-emerald-300'
                 }`}
               >
-                {s.name}
+                <span className="font-bold text-xs">{opt.label}</span>
+                <span className={`text-[10px] ${wardType === opt.id ? 'text-emerald-100' : 'text-gray-400'}`}>
+                  {opt.sub}
+                </span>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        {/* بطاقة مشغل التلاوة الصوتي المدمج للشيخ مشاري العفاسي */}
-        <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 rounded-2xl text-white p-3.5 sm:p-4 shadow-md transition-all">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={togglePlayAudio}
-                disabled={audioLoading}
-                className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white text-emerald-900 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-75"
+          {/* محددات إضافية بناء على النوع المختار */}
+          {wardType === 'juz' && (
+            <div className="flex items-center gap-3 pt-1 text-xs">
+              <label className="font-semibold text-gray-600 dark:text-gray-300 shrink-0">
+                اختر الجزء المحدد:
+              </label>
+              <select
+                value={wardTargetJuz}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setWardTargetJuz(val);
+                  try {
+                    localStorage.setItem('mueen_ward_juz', String(val));
+                  } catch {
+                    // ignore
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-emerald-800 dark:text-emerald-300 outline-none"
               >
-                {audioLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-emerald-700" />
-                ) : isPlaying ? (
-                  <Pause className="w-5 h-5 fill-emerald-800" />
-                ) : (
-                  <Play className="w-5 h-5 fill-emerald-800 mr-0.5" />
-                )}
-              </button>
+                {Array.from({ length: 30 }, (_, i) => i + 1).map((juzNum) => (
+                  <option key={juzNum} value={juzNum}>
+                    الجزء {toArabicNumerals(juzNum)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm sm:text-base">تلاوة سورة {currentSurahMeta.name}</h3>
-                  <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-700/80 text-emerald-100 font-medium">
-                    {currentSurahMeta.type}
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-200/90 flex items-center gap-1 mt-0.5">
-                  <Headphones className="w-3 h-3" />
-                  <span>بصوت الشيخ مشاري راشد العفاسي</span>
-                </p>
+          {wardType === 'pages' && (
+            <div className="flex items-center gap-3 pt-1 text-xs">
+              <label className="font-semibold text-gray-600 dark:text-gray-300 shrink-0">
+                عدد الصفحات المستهدفة اليوم:
+              </label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 4, 10, 20].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      setWardPageCount(num);
+                      try {
+                        localStorage.setItem('mueen_ward_pages', String(num));
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      wardPageCount === num
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
+                    }`}
+                  >
+                    {toArabicNumerals(num)} {num === 1 ? 'صفحة' : num === 2 ? 'صفحتان' : 'صفحات'}
+                  </button>
+                ))}
               </div>
             </div>
+          )}
 
-            {/* وقت التلاوة */}
-            <div className="text-left text-xs text-emerald-100/90 tabular-nums shrink-0 font-mono">
-              <span>{formatTime(currentTime)}</span>
-              {duration > 0 && <span className="opacity-60"> / {formatTime(duration)}</span>}
-            </div>
-          </div>
-
-          {/* شريط التقدم الصوتي */}
-          <div className="mt-3">
-            <input
-              type="range"
-              min={0}
-              max={duration || 100}
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full h-1.5 bg-emerald-950/60 rounded-lg appearance-none cursor-pointer accent-white"
-            />
+          {/* زر تسجيل إتمام ورد اليوم المباشر */}
+          <div className="pt-2 border-t border-gray-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={handleMarkWardDone}
+              className={`w-full py-3.5 px-5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all shadow-md cursor-pointer ${
+                isWardDone
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                  : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/25 active:scale-[0.98]'
+              }`}
+            >
+              {isWardDone ? (
+                <>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>تم إنجاز ورد اليوم بحمد الله 🌿 (اضغط للإلغاء)</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 text-amber-300" />
+                  <span>تسجيل إتمام ورد اليوم في عاداتي ✨</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* إشعار إتمام الورد اليومي */}
+        {/* إشعار تأكيد إتمام الورد */}
         {showWardToast && (
-          <div className="bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 text-xs sm:text-sm animate-in fade-in slide-in-from-top duration-300">
+          <div className="p-4 rounded-2xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold flex items-center justify-between shadow-lg shadow-emerald-600/30 animate-in slide-in-from-top-4 duration-300">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-300" />
-              <span>تقبل الله طاعتكم! تم تسجيل قراءة سورة {currentSurahMeta.name} في سجلك اليومي.</span>
+              <Check className="w-5 h-5 text-emerald-200" />
+              <span>هنيئاً لك! تم تسجيل ورد القرآن في سجل إنجازاتك اليومية ونسبتك مع رفيقك 🌿</span>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowWardToast(false)}
-              className="p-1 hover:bg-emerald-700 rounded-lg"
-            >
-              <X className="w-4 h-4" />
+            <button type="button" onClick={() => setShowWardToast(false)}>
+              <X className="w-4 h-4 text-emerald-200" />
             </button>
           </div>
         )}
 
-        {/* جسم المصحف الشريف لقراءة الآيات */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs overflow-hidden transition-colors">
-          {/* ترويسة السورة الإطار الإسلامي */}
-          <div className="border-b border-gray-100 dark:border-slate-800/80 bg-gradient-to-b from-amber-50/40 via-white to-white dark:from-slate-800/40 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-6 text-center">
-            <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full border border-emerald-200/80 dark:border-emerald-800/80 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-2">
-              سُورَةُ {currentSurahMeta.name} • {currentSurahMeta.type} • {toArabicNumerals(currentSurahMeta.verses)} آيات
-            </div>
-
-            {/* البسملة المزخرفة (تظهر لجميع السور ما عدا سورة التوبة) */}
-            {selectedSurah !== 9 && (
-              <div className="py-2">
-                <p className="font-quran text-2xl sm:text-3xl text-emerald-900 dark:text-emerald-300 tracking-wide select-none">
-                  بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* محتوى السورة */}
-          <div className="p-4 sm:p-8">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3 text-emerald-700 dark:text-emerald-400">
-                <Loader2 className="w-8 h-8 animate-spin" />
-                <p className="text-xs text-gray-500 dark:text-gray-400">جارٍ تحميل الآيات المباركة...</p>
-              </div>
-            ) : loadError ? (
-              <div className="text-center py-12 px-4 space-y-3">
-                <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSurah((s) => s)}
-                  className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-800 transition-colors"
-                >
-                  إعادة المحاولة
-                </button>
-              </div>
-            ) : viewMode === 'mushaf' ? (
-              /* العرض المتصل كصفحات المصحف الشريف */
-              <div className="text-justify [text-align-last:center] sm:[text-align-last:right] leading-loose">
-                <p className={`font-quran ${fontClass} text-gray-800 dark:text-slate-100`}>
-                  {ayahs.map((ayah) => (
-                    <span key={ayah.numberInSurah} className="inline">
-                      <span>{cleanAyahText(ayah)}</span>
-                      <span className="inline-flex items-center justify-center mx-1 text-emerald-700 dark:text-emerald-400 font-bold select-none text-base sm:text-xl">
-                        ۝{toArabicNumerals(ayah.numberInSurah)}
-                      </span>{' '}
-                    </span>
-                  ))}
-                </p>
-              </div>
-            ) : (
-              /* عرض الآيات في بطاقات منفصلة لدراسة كل آية */
-              <div className="space-y-3">
-                {ayahs.map((ayah) => (
-                  <div
-                    key={ayah.numberInSurah}
-                    className="p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-slate-800/80 hover:border-emerald-200 dark:hover:border-emerald-800 bg-gray-50/50 dark:bg-slate-800/30 transition-all"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center text-xs font-bold">
-                        {toArabicNumerals(ayah.numberInSurah)}
-                      </span>
-                    </div>
-                    <p className={`font-quran ${fontClass} text-gray-800 dark:text-slate-100 text-right`}>
-                      {cleanAyahText(ayah)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* تذييل السورة: زر إتمام الورد والتنقل بين السور */}
-          <div className="border-t border-gray-100 dark:border-slate-800 p-4 sm:p-6 bg-gray-50/70 dark:bg-slate-900/60 flex flex-col gap-4">
-            {/* زر تسجيل إتمام ورد هذه السورة اليوم */}
+        {/* ======================= شريط السور السريعة ======================= */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span className="font-semibold">السور الكريمة للقراءة السريعة:</span>
             <button
               type="button"
-              onClick={handleMarkWardDone}
-              className={`w-full py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-98 ${
-                isWardDone
-                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
-                  : 'bg-emerald-700 hover:bg-emerald-800 text-white'
-              }`}
+              onClick={() => setIsIndexOpen(true)}
+              className="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline"
             >
-              <CheckCircle2 className={`w-4 h-4 ${isWardDone ? 'text-emerald-600 fill-emerald-100' : ''}`} />
-              <span>
-                {isWardDone ? 'تم إتمام قراءة هذا الورد بحمد الله 🌿' : 'تسجيل قراءة هذه السورة في ورد اليوم ✨'}
-              </span>
+              عرض كل السور (١١٤)
             </button>
+          </div>
 
-            {/* أزرار السورة السابقة والتالية */}
-            <div className="flex items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                disabled={selectedSurah <= 1}
-                onClick={() => setSelectedSurah((prev) => Math.max(1, prev - 1))}
-                className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-emerald-700 dark:hover:text-emerald-400 disabled:opacity-40 disabled:pointer-events-none p-2 rounded-xl transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-                <span>السورة السابقة</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsIndexOpen(true)}
-                className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
-              >
-                فهرس السور
-              </button>
-
-              <button
-                type="button"
-                disabled={selectedSurah >= 114}
-                onClick={() => setSelectedSurah((prev) => Math.min(114, prev + 1))}
-                className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-emerald-700 dark:hover:text-emerald-400 disabled:opacity-40 disabled:pointer-events-none p-2 rounded-xl transition-colors cursor-pointer"
-              >
-                <span>السورة التالية</span>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {POPULAR_SURAHS.map((surahNum) => {
+              const surah = ALL_SURAHS.find((s) => s.num === surahNum);
+              if (!surah) return null;
+              const isSelected = selectedSurah === surahNum;
+              return (
+                <button
+                  key={surahNum}
+                  type="button"
+                  onClick={() => setSelectedSurah(surahNum)}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                      : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
+                  }`}
+                >
+                  <span>{surah.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* روابط سريعة للتفاسير والمواقع المعتمدة (في أسفل الصفحة بأزرار نظيفة) */}
-        <div className="grid grid-cols-2 gap-2.5 pt-2">
-          <a
-            href={`https://tafsir.app/${selectedSurah}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-3 bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-emerald-700 hover:border-emerald-300 transition-all shadow-2xs"
-          >
-            <span>تفسير السورة في tafsir.app</span>
-            <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
-          </a>
+        {/* ======================= مشغل التلاوة الصوتية ======================= */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-emerald-100/80 dark:border-slate-800 shadow-xs space-y-3">
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onTimeUpdate={() => {
+              if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+            }}
+            onLoadedMetadata={() => {
+              if (audioRef.current) setDuration(audioRef.current.duration);
+            }}
+            onEnded={() => setIsPlaying(false)}
+          />
 
-          <a
-            href={`https://quran.com/ar/${selectedSurah}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-3 bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-emerald-700 hover:border-emerald-300 transition-all shadow-2xs"
-          >
-            <span>عرض السورة في Quran.com</span>
-            <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
-          </a>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={togglePlayAudio}
+                disabled={audioLoading}
+                aria-label={isPlaying ? 'إيقاف التلاوة' : 'تشغيل التلاوة'}
+                className="w-11 h-11 rounded-2xl bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white flex items-center justify-center shadow-md shadow-emerald-700/20 transition-all cursor-pointer shrink-0"
+              >
+                {audioLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isPlaying ? (
+                  <Pause className="w-5 h-5 fill-white" />
+                ) : (
+                  <Play className="w-5 h-5 fill-white mr-0.5" />
+                )}
+              </button>
+              <div>
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white">
+                  تلاوة {currentSurahMeta.fullName}
+                </h3>
+                <p className="text-[11px] text-gray-400">بصوت الشيخ مشاري راشد العفاسي</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-gray-400">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (audioRef.current) {
+                    audioRef.current.muted = !isMuted;
+                    setIsMuted(!isMuted);
+                  }
+                }}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* شريط التمرير */}
+          <input
+            type="range"
+            min={0}
+            max={duration || 100}
+            value={currentTime}
+            onChange={handleSeek}
+            className="w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-emerald-600"
+          />
+        </div>
+
+        {/* ======================= أدوات راحة القراءة والخط ======================= */}
+        <div className="flex items-center justify-between text-xs bg-white dark:bg-slate-900 rounded-2xl p-3 border border-gray-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 font-semibold">حجم الخط:</span>
+            <div className="flex bg-gray-100 dark:bg-slate-800 p-0.5 rounded-xl">
+              {(['normal', 'large', 'huge'] as const).map((sz) => (
+                <button
+                  key={sz}
+                  type="button"
+                  onClick={() => setFontSize(sz)}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                    fontSize === sz
+                      ? 'bg-white dark:bg-slate-700 text-emerald-800 dark:text-emerald-300 shadow-2xs'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {sz === 'normal' ? 'عادي' : sz === 'large' ? 'كبير' : 'جلي'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={selectedSurah <= 1}
+              onClick={() => setSelectedSurah((prev) => Math.max(1, prev - 1))}
+              className="p-1.5 rounded-xl border border-gray-200 dark:border-slate-800 disabled:opacity-30 text-gray-600 dark:text-gray-300 cursor-pointer"
+              title="السورة السابقة"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <span className="font-bold text-xs px-2">{currentSurahMeta.name}</span>
+            <button
+              type="button"
+              disabled={selectedSurah >= 114}
+              onClick={() => setSelectedSurah((prev) => Math.min(114, prev + 1))}
+              className="p-1.5 rounded-xl border border-gray-200 dark:border-slate-800 disabled:opacity-30 text-gray-600 dark:text-gray-300 cursor-pointer"
+              title="السورة التالية"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* ======================= نصوص الآيات الكريمة ======================= */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
+          {/* عنوان السورة في إطار إسلامي مزخرف */}
+          <div className="text-center mb-8 pb-6 border-b border-gray-100 dark:border-slate-800">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 dark:text-emerald-300 font-serif mb-2">
+              {currentSurahMeta.fullName}
+            </h2>
+            <div className="flex items-center justify-center gap-3 text-xs text-gray-400">
+              <span>{currentSurahMeta.type}</span>
+              <span>•</span>
+              <span>{toArabicNumerals(currentSurahMeta.verses)} آيات</span>
+            </div>
+
+            {/* البسملة الشريفة */}
+            {selectedSurah !== 1 && selectedSurah !== 9 && (
+              <div className="mt-6 text-xl sm:text-2xl text-emerald-800 dark:text-emerald-400 font-serif">
+                بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ
+              </div>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="py-16 text-center space-y-3">
+              <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto" />
+              <p className="text-xs text-gray-400">جارٍ تحميل آيات السورة الكريمة...</p>
+            </div>
+          ) : loadError ? (
+            <div className="py-12 text-center space-y-3">
+              <p className="text-xs text-rose-500">{loadError}</p>
+              <button
+                type="button"
+                onClick={() => setSelectedSurah(selectedSurah)}
+                className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-semibold"
+              >
+                إعادة المحاولة
+              </button>
+            </div>
+          ) : (
+            <div className={`font-serif text-justify text-gray-900 dark:text-slate-100 ${getFontSizeClass()}`}>
+              {ayahs.map((ayah) => {
+                const text = cleanAyahText(ayah);
+                return (
+                  <span key={ayah.number} className="inline">
+                    <span>{text} </span>
+                    <span className="inline-block text-emerald-700 dark:text-emerald-400 font-sans text-sm sm:text-base font-bold px-1 select-none">
+                      ﴿{toArabicNumerals(ayah.numberInSurah)}﴾
+                    </span>{' '}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
 
-      {/* نافذة فهرس السور والبحث الكامل (114 سورة) */}
+      {/* ======================= نافذة فهرس السور والبحث ======================= */}
       {isIndexOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl border border-gray-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-300 overflow-hidden">
-            {/* رأس الفهرس */}
-            <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-bold text-gray-900 dark:text-white text-base">فهرس سور القرآن الكريم</h3>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            dir="rtl"
+            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-gray-100 dark:border-slate-800 max-h-[85vh] flex flex-col space-y-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+              <h3 className="font-bold text-base">فهرس سور القرآن الكريم (١١٤)</h3>
               <button
                 type="button"
                 onClick={() => setIsIndexOpen(false)}
-                className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* حقل البحث */}
-            <div className="p-3 border-b border-gray-100 dark:border-slate-800">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="ابحث باسم السورة (مثلاً: الكهف، البقرة) أو رقمها..."
-                  className="w-full pl-3 pr-9 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 border-none text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  autoFocus
-                />
-                <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute left-3 top-2.5 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute right-3.5 top-3" />
+              <input
+                type="text"
+                placeholder="ابحث برقم السورة أو اسمها (مثال: الكهف، 18)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs text-gray-900 dark:text-white outline-none focus:border-emerald-500"
+              />
             </div>
 
-            {/* قائمة السور الـ 114 */}
-            <div className="p-2 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800/60 flex-1">
-              {filteredSurahs.length === 0 ? (
-                <div className="text-center py-8 text-xs text-gray-400">
-                  لم يتم العثور على سورة تطابق بحثك
-                </div>
-              ) : (
-                filteredSurahs.map((surah) => {
-                  const isCurrent = selectedSurah === surah.num;
-                  return (
-                    <button
-                      key={surah.num}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSurah(surah.num);
-                        setIsIndexOpen(false);
-                        setSearchQuery('');
-                      }}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl text-right transition-all cursor-pointer ${
-                        isCurrent
-                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold'
-                          : 'hover:bg-gray-50 dark:hover:bg-slate-800/50 text-gray-800 dark:text-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                            isCurrent
-                              ? 'bg-emerald-700 text-white'
-                              : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
-                          }`}
-                        >
-                          {toArabicNumerals(surah.num)}
-                        </span>
-                        <div>
-                          <p className="text-sm font-bold">{surah.fullName}</p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                            {surah.englishName}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
-                          {toArabicNumerals(surah.verses)} آيات
-                        </span>
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full ${
-                            surah.type === 'مكية'
-                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60'
-                              : 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200/60 dark:border-teal-800/60'
-                          }`}
-                        >
-                          {surah.type}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
+            {/* قائمة السور */}
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              {filteredSurahs.map((surah) => (
+                <button
+                  key={surah.num}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSurah(surah.num);
+                    setIsIndexOpen(false);
+                  }}
+                  className={`w-full p-2.5 rounded-xl text-right flex items-center justify-between text-xs transition-all cursor-pointer ${
+                    selectedSurah === surah.num
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800'
+                      : 'hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center font-mono font-bold text-[11px] text-gray-500">
+                      {surah.num}
+                    </span>
+                    <div>
+                      <div className="font-bold text-sm">{surah.name}</div>
+                      <div className="text-[10px] text-gray-400">{surah.englishName}</div>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-gray-400">
+                    <span>{surah.type}</span> • <span>{surah.verses} آية</span>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>

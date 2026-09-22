@@ -97,6 +97,17 @@ export const MobileBottomNav: React.FC = () => {
     },
   ];
 
+  const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('mueen_user_avatar');
+      if (saved) setLocalAvatar(saved);
+    }
+  }, []);
+
+  const userAvatar = localAvatar || currentUser?.user_metadata?.avatar_url;
+
   return (
     <>
       {/* نافذة تعديل الملف الشخصي للهاتف */}
@@ -105,8 +116,9 @@ export const MobileBottomNav: React.FC = () => {
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
           currentName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || ''}
-          currentAvatar={currentUser?.user_metadata?.avatar_url || ''}
+          currentAvatar={userAvatar || ''}
           onProfileUpdated={(updated: { fullName: string; avatarUrl: string }) => {
+            setLocalAvatar(updated.avatarUrl);
             setCurrentUser((prev: any) => ({
               ...prev,
               user_metadata: {
@@ -119,34 +131,42 @@ export const MobileBottomNav: React.FC = () => {
         />
       )}
 
-      {/* شريط الإشعار لتثبيت التطبيق (يظهر كبانر خفيف مرة واحدة) */}
+      {/* شريط تثبيت التطبيق الذكي للهواتف (PWA Install Banner) */}
       {showInstallPrompt && (
-        <div className="fixed bottom-16 inset-x-3 z-40 sm:hidden animate-in slide-in-from-bottom duration-300">
-          <div className="bg-emerald-900/95 text-white p-3 rounded-2xl backdrop-blur-md shadow-xl border border-emerald-500/30 flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-700 flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-emerald-200" />
-              </div>
-              <p>ثبّت تطبيق مُعين على هاتفك لاستخدامه بملء الشاشة كأي تطبيق عادي 📱</p>
+        <aside 
+          aria-label="تثبيت التطبيق"
+          className="fixed bottom-20 inset-x-3 z-40 sm:hidden bg-gradient-to-l from-emerald-800 to-teal-900 text-white rounded-2xl p-3.5 shadow-xl border border-emerald-500/30 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4 duration-300"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-amber-300" />
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleInstallClick}
-                className="px-3 py-1.5 bg-white text-emerald-900 font-bold rounded-xl text-xs shadow-sm hover:bg-emerald-50 transition-colors"
-              >
-                تثبيت
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowInstallPrompt(false)}
-                className="p-1 text-emerald-300 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
+            <div>
+              <h3 className="font-bold text-xs sm:text-sm">تثبيت تطبيق مُعين 📲</h3>
+              <p className="text-[11px] text-emerald-200/90 leading-tight mt-0.5">
+                تصفح أسرع وإشعارات بدون متصفح
+              </p>
             </div>
           </div>
-        </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="px-3 py-1.5 rounded-xl bg-white text-emerald-950 font-bold text-xs shadow-xs hover:bg-emerald-50 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>تثبيت</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowInstallPrompt(false)}
+              aria-label="إغلاق التنبيه"
+              className="p-1 rounded-lg text-emerald-200 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
       )}
 
       {/* الشريط السفلي الثابت للهاتف (Native Mobile Bottom Bar) */}
@@ -168,12 +188,20 @@ export const MobileBottomNav: React.FC = () => {
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
-                <div className={`p-1 rounded-xl transition-all ${
+                <div className={`p-1 rounded-xl transition-all flex items-center justify-center ${
                   item.isActive 
                     ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400' 
                     : ''
                 }`}>
-                  <Icon className="w-5 h-5" />
+                  {item.icon === User && userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="حسابي"
+                      className="w-5 h-5 rounded-full object-cover border border-emerald-600 shadow-2xs"
+                    />
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
                 </div>
                 <span className="text-[11px] mt-0.5 tracking-tight">{item.label}</span>
               </Link>
