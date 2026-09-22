@@ -260,4 +260,146 @@ export async function getUserRealStreak(): Promise<number> {
   return streak;
 }
 
+/**
+ * 4. دالة لجلب سجلات العادات لشهر محدد (للتتبع والاستدراك)
+ * @param year السنة (مثال 2026)
+ * @param month الشهر (1 - 12)
+ */
+export async function fetchMonthLogs(year: number, month: number): Promise<Record<string, string[]>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return {};
+
+  const monthPrefix = `${year}-${String(month).padStart(2, '0')}-`;
+
+  const { data, error } = await supabase
+    .from('daily_logs')
+    .select(`
+      date,
+      user_habit_id,
+      completed,
+      user_habits!inner (
+        user_id
+      )
+    `)
+    .eq('user_habits.user_id', user.id)
+    .eq('completed', true)
+    .like('date', `${monthPrefix}%`);
+
+  if (error || !data) {
+    console.error('خطأ في جلب سجلات الشهر:', error);
+    return {};
+  }
+
+  const result: Record<string, string[]> = {};
+  data.forEach((row: any) => {
+    const d = row.date;
+    if (!result[d]) {
+      result[d] = [];
+    }
+    if (!result[d].includes(row.user_habit_id)) {
+      result[d].push(row.user_habit_id);
+    }
+  });
+
+  return result;
+}
+
+/**
+ * 5. دالة لجلب ملخص السنة كاملة للعرض السنوي (Heatmap / Yearly Overview)
+ * @param year السنة (مثال 2026)
+ */
+export async function fetchYearSummary(year: number): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return {};
+
+  const yearPrefix = `${year}-`;
+
+  const { data, error } = await supabase
+    .from('daily_logs')
+    .select(`
+      date,
+      completed,
+      user_habits!inner (
+        user_id
+      )
+    `)
+    .eq('user_habits.user_id', user.id)
+    .eq('completed', true)
+    .like('date', `${yearPrefix}%`);
+
+  if (error || !data) {
+    console.error('خطأ في جلب ملخص السنة:', error);
+    return {};
+  }
+
+  const result: Record<string, number> = {};
+  data.forEach((row: any) => {
+    const d = row.date;
+    result[d] = (result[d] || 0) + 1;
+  });
+
+  return result;
+}
+
+/**
+ * 6. دالة لحفظ أو تعديل مجموعة عادات ليوم محدد دفعة واحدة (للاستدراك السريع)
+ */
+export async function batchToggleDayHabits(
+  date: string,
+  updates: { habitId: string; completed: boolean; title?: string; category?: string }[]
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error('غير مصرح. يرجى تسجيل الدخول.');
+  }
+
+  // 1. التأكد من وجود العادات في user_habits
+  for (const item of updates) {
+    if (item.title && item.category) {
+      await supabase.from('user_habits').upsert(
+        {
+          id: item.habitId,
+          user_id: user.id,
+          title: item.title,
+          category: item.category,
+          is_active: true,
+        },
+        { onConflict: 'id' }
+      );
+    }
+  }
+
+  // 2. تحديث السجلات في daily_logs
+  const upsertRows = updates.map((u) => ({
+    user_habit_id: u.habitId,
+    date,
+    completed: u.completed,
+  }));
+
+  const { error: upsertError } = await supabase
+    .from('daily_logs')
+    .upsert(upsertRows, { onConflict: 'user_habit_id,date' });
+
+  if (upsertError) {
+    console.error('خطأ في الحفظ الجماعي:', upsertError);
+    throw new Error('تعذر حفظ عادات اليوم في السجل.');
+  }
+
+  return { success: true, count: updates.length, date };
+}
+
+
 

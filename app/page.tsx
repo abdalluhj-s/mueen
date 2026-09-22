@@ -11,7 +11,7 @@ import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
 import { toggleHabitCompletion, fetchPartnerProgress, getUserRealStreak } from './actions/habits';
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
 import { createClient } from '../lib/supabase/client';
-import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell } from 'lucide-react';
+import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell, Calendar as CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 
 // إصدار العادات الافتراضية — تغييره يؤدي لإعادة ضبط LocalStorage للزوار الجدد
@@ -289,6 +289,30 @@ export default function DashboardPage() {
           hijriDate={hijri}
           gregorianDate={gregorian}
         />
+
+        {/* رابط استدراك الأيام السابقة في التقويم */}
+        <div className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-950/60 rounded-2xl p-3.5 sm:p-4 shadow-2xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CalendarIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
+                فاتك تسجيل صلوات أو أوراد يوم سابق؟ 📅
+              </p>
+              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                يمكنك استدراك وتسجيل عادات أي يوم في الشهر عبر التقويم الشهري والسنوي
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/progress"
+            className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-colors shrink-0 flex items-center gap-1 shadow-2xs cursor-pointer"
+          >
+            <span>فتح التقويم</span>
+            <span>←</span>
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* العمود الرئيسي: قائمة عادات اليوم */}
