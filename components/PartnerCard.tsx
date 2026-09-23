@@ -20,6 +20,7 @@ import { sendPartnerEncouragement, disconnectPartner } from '../app/actions/part
 
 interface PartnerCardProps {
   partner: PartnerStatus | null;
+  allPartners?: PartnerStatus[];
   recentMessages?: PartnerMessage[];
   onOpenInviteModal?: () => void;
   onRefreshPartner?: () => void;
@@ -34,12 +35,21 @@ const PRESET_ENCOURAGEMENTS = [
 
 export const PartnerCard: React.FC<PartnerCardProps> = ({
   partner,
+  allPartners = [],
   recentMessages = [],
   onOpenInviteModal,
   onRefreshPartner,
 }) => {
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+
+  // الشريك النشط المعروض
+  const activePartner =
+    allPartners.length > 0
+      ? allPartners.find((p) => p.id === selectedPartnerId) || allPartners[0]
+      : partner;
+
   const [hasEncouraged, setHasEncouraged] = useState<boolean>(
-    partner?.encouragedToday ?? false
+    activePartner?.encouragedToday ?? false
   );
   const [isSending, setIsSending] = useState<boolean>(false);
   const [customMsg, setCustomMsg] = useState('');
@@ -48,6 +58,12 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+
+  useEffect(() => {
+    if (activePartner) {
+      setHasEncouraged(activePartner.encouragedToday ?? false);
+    }
+  }, [activePartner?.id, activePartner?.encouragedToday]);
 
   // تحديث حالة الشريك يدوياً
   const handleRefresh = async () => {
@@ -60,6 +76,7 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
 
   // إرسال تشجيع أو دعاء للشريك
   const handleSendEncouragement = async (messageText?: string) => {
+    if (!activePartner) return;
     const textToSend = messageText || customMsg;
     if (!textToSend.trim() || isSending) return;
 
@@ -67,7 +84,7 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
     setSendFeedback(null);
 
     try {
-      const res = await sendPartnerEncouragement(textToSend.trim());
+      const res = await sendPartnerEncouragement(textToSend.trim(), 'encouragement', activePartner.id);
       if (res.success) {
         setHasEncouraged(true);
         setSendFeedback('تم إرسال التشجيع لرفيقك بنجاح! 🌿');
@@ -86,13 +103,14 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
 
   // فك الارتباط بالشريك
   const handleDisconnect = async () => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في فك الارتباط بهذا الرفيق؟ يمكنك دائماً ربط رفيق جديد.')) {
+    if (!activePartner) return;
+    if (!window.confirm(`هل أنت متأكد من رغبتك في فك الارتباط بالرفيق (${activePartner.name})؟`)) {
       return;
     }
 
     setIsDisconnecting(true);
     try {
-      const res = await disconnectPartner();
+      const res = await disconnectPartner(activePartner.id);
       if (res.success && onRefreshPartner) {
         onRefreshPartner();
       }
@@ -105,7 +123,7 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
   };
 
   // ===================== حالة عدم وجود شريك =====================
-  if (!partner) {
+  if (!activePartner) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-emerald-300 dark:border-emerald-800 p-6 text-center shadow-xs transition-colors duration-200 relative overflow-hidden">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-100 to-teal-50 dark:from-emerald-950 dark:to-teal-900 text-emerald-700 dark:text-emerald-300 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
@@ -132,12 +150,42 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
 
   // حساب نسبة إنجاز الشريك اليوم
   const completionPct =
-    partner.totalHabits > 0
-      ? Math.round((partner.completedCount / partner.totalHabits) * 100)
+    activePartner.totalHabits > 0
+      ? Math.round((activePartner.completedCount / activePartner.totalHabits) * 100)
       : 0;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/90 dark:border-slate-800 p-5 shadow-xs relative overflow-hidden transition-colors duration-200 space-y-4">
+      {/* تبويبات رفقاء الالتزام في حال وجود أكثر من شريك */}
+      {allPartners.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-gray-100 dark:border-slate-800">
+          <span className="text-[11px] font-bold text-gray-400 shrink-0 ml-1">
+            الرفقاء ({allPartners.length}):
+          </span>
+          {allPartners.map((p) => {
+            const isSelected = activePartner.id === p.id;
+            const pct = p.totalHabits > 0 ? Math.round((p.completedCount / p.totalHabits) * 100) : 0;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedPartnerId(p.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                <span>{p.name.split(' ')[0]}</span>
+                <span className={`text-[10px] px-1 py-0.2 rounded-md ${isSelected ? 'bg-black/20 text-white' : 'bg-gray-200 dark:bg-slate-700'}`}>
+                  {pct}%
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* رأس البطاقة */}
       <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
@@ -151,13 +199,13 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
           <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 px-2.5 py-1 rounded-full border border-emerald-200/70 dark:border-emerald-800/60">
             <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
             <span>
-              {partner.streakDays <= 1
+              {activePartner.streakDays <= 1
                 ? 'اليوم الأول معاً'
-                : partner.streakDays === 2
+                : activePartner.streakDays === 2
                 ? 'يومان معاً'
-                : partner.streakDays >= 3 && partner.streakDays <= 10
-                ? `${partner.streakDays} أيام معاً`
-                : `${partner.streakDays} يوماً معاً`}
+                : activePartner.streakDays >= 3 && activePartner.streakDays <= 10
+                ? `${activePartner.streakDays} أيام معاً`
+                : `${activePartner.streakDays} يوماً معاً`}
             </span>
           </span>
 
@@ -200,23 +248,23 @@ export const PartnerCard: React.FC<PartnerCardProps> = ({
       {/* معلومات الشريك والبروفايل */}
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
-          {partner.avatarUrl ? (
+          {activePartner.avatarUrl ? (
             <img
-              src={partner.avatarUrl}
-              alt={partner.name}
+              src={activePartner.avatarUrl}
+              alt={activePartner.name}
               className="w-full h-full rounded-2xl object-cover"
             />
           ) : (
-            partner.name.charAt(0)
+            activePartner.name.charAt(0)
           )}
         </div>
         <div className="min-w-0 flex-1">
           <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate">
-            {partner.name}
+            {activePartner.name}
           </h4>
           <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-            <span>نشاط اليوم: {partner.lastActiveTime}</span>
+            <span>نشاط اليوم: {activePartner.lastActiveTime}</span>
           </p>
         </div>
       </div>

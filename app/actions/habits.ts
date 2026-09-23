@@ -93,7 +93,10 @@ export async function toggleHabitCompletion(
 /**
  * 2. دالة لجلب إنجاز الشريك لليوم الحالي فقط وحساب النسبة المئوية
  */
-export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
+/**
+ * 2. دالة لجلب إنجاز جميع الشركاء المرتبطين بالمستخدم الحالي
+ */
+export async function fetchAllPartnersProgress(): Promise<PartnerStatus[]> {
   const supabase = await createClient();
 
   // التحقق من هوية المستخدم الحالي
@@ -101,97 +104,97 @@ export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (!user) return [];
 
-  // جلب الشراكة النشطة للمستخدم (سواء كان هو الطرف الأول أو الثاني)
-  const { data: partnership, error: partError } = await supabase
+  // جلب جميع الشراكات المقبولة للمستخدم (مرتبة بالأحدث)
+  const { data: partnerships, error: partError } = await supabase
     .from('partnerships')
     .select('id, user_id_1, user_id_2, created_at')
     .eq('status', 'accepted')
     .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-    .maybeSingle();
+    .order('created_at', { ascending: false });
 
-  if (partError || !partnership) {
-    return null; // لا يوجد شريك مسجل أو مقبول حالياً
+  if (partError || !partnerships || partnerships.length === 0) {
+    return [];
   }
 
-  // تحديد معرف الشريك
-  const partnerId =
-    partnership.user_id_1 === user.id ? partnership.user_id_2 : partnership.user_id_1;
-
-  // جلب الملف الشخصي للشريك (الاسم والصورة)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, avatar_url')
-    .eq('id', partnerId)
-    .single();
-
-  // حساب عدد العادات الإجمالية المفعلة للشريك
-  const { data: partnerHabits, error: habitsError } = await supabase
-    .from('user_habits')
-    .select('id')
-    .eq('user_id', partnerId);
-
-  // فحص ما إذا كان المستخدم قد أرسل تشجيعاً لشريكه اليوم
   const today = new Date().toISOString().split('T')[0];
-  const { data: encouragementRecord } = await supabase
-    .from('partner_messages')
-    .select('id')
-    .eq('sender_id', user.id)
-    .eq('receiver_id', partnerId)
-    .gte('created_at', `${today}T00:00:00Z`)
-    .limit(1)
-    .maybeSingle();
+  const results: PartnerStatus[] = [];
 
-  const encouragedToday = !!encouragementRecord;
+  for (const partnership of partnerships) {
+    const partnerId =
+      partnership.user_id_1 === user.id ? partnership.user_id_2 : partnership.user_id_1;
 
-  // حساب عدد الأيام معاً بشكل واقعي من تاريخ إنشاء الشراكة
-  let daysTogether = 1;
-  if (partnership.created_at) {
-    const start = new Date(partnership.created_at).getTime();
-    const now = Date.now();
-    const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
-    daysTogether = Math.max(1, diffDays);
-  }
+    // جلب الملف الشخصي للشريك (الاسم والصورة)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('id', partnerId)
+      .maybeSingle();
 
-  if (!partnerHabits || partnerHabits.length === 0) {
-    return {
+    // جلب عدد العادات الإجمالية المفعلة للشريك
+    const { data: partnerHabits } = await supabase
+      .from('user_habits')
+      .select('id')
+      .eq('user_id', partnerId);
+
+    // فحص ما إذا كان المستخدم قد أرسل تشجيعاً لهذا الشريك اليوم
+    const { data: encouragementRecord } = await supabase
+      .from('partner_messages')
+      .select('id')
+      .eq('sender_id', user.id)
+      .eq('receiver_id', partnerId)
+      .gte('created_at', `${today}T00:00:00Z`)
+      .limit(1)
+      .maybeSingle();
+
+    const encouragedToday = !!encouragementRecord;
+
+    // حساب عدد الأيام معاً بشكل واقعي من تاريخ إنشاء الشراكة
+    let daysTogether = 1;
+    if (partnership.created_at) {
+      const start = new Date(partnership.created_at).getTime();
+      const now = Date.now();
+      const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
+      daysTogether = Math.max(1, diffDays);
+    }
+
+    const totalHabits = Math.max(partnerHabits?.length || 0, 11);
+    let completedCount = 0;
+
+    if (partnerHabits && partnerHabits.length > 0) {
+      const partnerHabitIds = partnerHabits.map((h) => h.id);
+      const { data: todayLogs } = await supabase
+        .from('daily_logs')
+        .select('id')
+        .in('user_habit_id', partnerHabitIds)
+        .eq('date', today)
+        .eq('completed', true);
+
+      completedCount = todayLogs?.length || 0;
+    }
+
+    results.push({
       id: partnerId,
       name: profile?.full_name || 'رفيق الالتزام',
       avatarUrl: profile?.avatar_url,
-      completedCount: 0,
-      totalHabits: 11,
+      completedCount,
+      totalHabits,
       streakDays: daysTogether,
-      lastActiveTime: 'اليوم',
+      lastActiveTime: completedCount > 0 ? 'اليوم (نشط)' : 'منذ قليل',
       encouragedToday,
-    };
+    });
   }
 
-  const totalHabits = Math.max(partnerHabits.length, 11);
+  return results;
+}
 
-  // استخراج معرّفات عادات الشريك
-  const partnerHabitIds = partnerHabits.map((h) => h.id);
-
-  // جلب إنجازات الشريك المسجلة لليوم الحالي فقط (Current Date)
-  const { data: todayLogs } = await supabase
-    .from('daily_logs')
-    .select('id, completed')
-    .in('user_habit_id', partnerHabitIds)
-    .eq('date', today)
-    .eq('completed', true);
-
-  const completedCount = todayLogs?.length || 0;
-
-  return {
-    id: partnerId,
-    name: profile?.full_name || 'رفيق الالتزام',
-    avatarUrl: profile?.avatar_url,
-    completedCount: completedCount,
-    totalHabits: totalHabits,
-    streakDays: daysTogether,
-    lastActiveTime: completedCount > 0 ? 'اليوم (نشط)' : 'منذ قليل',
-    encouragedToday,
-  };
+/**
+ * دالة لجلب الشريك الأحدث (للتوافق القديم)
+ */
+export async function fetchPartnerProgress(): Promise<PartnerStatus | null> {
+  const all = await fetchAllPartnersProgress();
+  return all.length > 0 ? all[0] : null;
 }
 
 /**

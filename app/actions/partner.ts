@@ -208,11 +208,10 @@ export async function acceptInviteCode(inviteCode: string) {
     };
   }
 
-  // إلغاء أي شراكات سابقة غير مكتملة أو قديمة لضمان رفيق واحد نشط
-  await supabase
-    .from('partnerships')
-    .delete()
-    .or(`user_id_1.eq.${currentUser.id},user_id_2.eq.${currentUser.id}`);
+  // إذا كانت هناك علاقة سابقة معلقة بينهما، نحذفها
+  if (existingBetweenThem) {
+    await supabase.from('partnerships').delete().eq('id', existingBetweenThem.id);
+  }
 
   // تسجيل الشراكة وتعيين الحالة إلى 'accepted'
   const { error: insertError } = await supabase
@@ -262,7 +261,11 @@ export async function acceptInviteCode(inviteCode: string) {
 /**
  * 4. إرسال تشجيع أو دعاء للشريك
  */
-export async function sendPartnerEncouragement(customMessage?: string, messageType: string = 'encouragement') {
+export async function sendPartnerEncouragement(
+  customMessage?: string,
+  messageType: string = 'encouragement',
+  targetPartnerId?: string
+) {
   const supabase = await createClient();
 
   const {
@@ -273,19 +276,26 @@ export async function sendPartnerEncouragement(customMessage?: string, messageTy
     return { success: false, error: 'يجب تسجيل الدخول لإرسال تشجيع لشريكك.' };
   }
 
-  // البحث عن الشريك النشط
-  const { data: partnership } = await supabase
-    .from('partnerships')
-    .select('id, user_id_1, user_id_2')
-    .eq('status', 'accepted')
-    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
-    .maybeSingle();
+  let partnerId = targetPartnerId;
 
-  if (!partnership) {
-    return { success: false, error: 'ليس لديك شريك التزام نشط حالياً.' };
+  // إذا لم يتم تحديد شريك، نجلب أحدث شريك نشط
+  if (!partnerId) {
+    const { data: partnerships } = await supabase
+      .from('partnerships')
+      .select('id, user_id_1, user_id_2')
+      .eq('status', 'accepted')
+      .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!partnerships || partnerships.length === 0) {
+      return { success: false, error: 'ليس لديك شريك التزام نشط حالياً.' };
+    }
+
+    const p = partnerships[0];
+    partnerId = p.user_id_1 === user.id ? p.user_id_2 : p.user_id_1;
   }
 
-  const partnerId = partnership.user_id_1 === user.id ? partnership.user_id_2 : partnership.user_id_1;
   const messageText = customMessage?.trim() || 'ثبّتك الله وبارك في همّتك ووردك اليومي! 🌿';
 
   const { error: insertError } = await supabase
@@ -356,9 +366,9 @@ export async function getPartnerMessages(): Promise<Array<{
 }
 
 /**
- * 6. إنهاء أو فك الارتباط بالشريك الحالي
+ * 6. إنهاء أو فك الارتباط بالشريك الحالي (أو شريك محدد)
  */
-export async function disconnectPartner() {
+export async function disconnectPartner(targetPartnerId?: string) {
   const supabase = await createClient();
 
   const {
@@ -369,15 +379,22 @@ export async function disconnectPartner() {
     return { success: false, error: 'غير مصرح لك.' };
   }
 
-  const { error } = await supabase
-    .from('partnerships')
-    .delete()
-    .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+  let query = supabase.from('partnerships').delete();
+
+  if (targetPartnerId) {
+    query = query.or(
+      `and(user_id_1.eq.${user.id},user_id_2.eq.${targetPartnerId}),and(user_id_1.eq.${targetPartnerId},user_id_2.eq.${user.id})`
+    );
+  } else {
+    query = query.or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`);
+  }
+
+  const { error } = await query;
 
   if (error) {
     return { success: false, error: 'تعذر إلغاء الارتباط حالياً.' };
   }
 
   revalidatePath('/');
-  return { success: true, message: 'تم فك الارتباط بالشريك السابق بنجاح.' };
+  return { success: true, message: 'تم فك الارتباط بالشريك بنجاح.' };
 }

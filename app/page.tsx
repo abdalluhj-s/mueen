@@ -8,7 +8,7 @@ import { PartnerCard } from '../components/PartnerCard';
 import { PartnerInviteModal } from '../components/PartnerInviteModal';
 import { AddHabitModal } from '../components/AddHabitModal';
 import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
-import { toggleHabitCompletion, fetchPartnerProgress, getUserRealStreak } from './actions/habits';
+import { toggleHabitCompletion, fetchPartnerProgress, fetchAllPartnersProgress, getUserRealStreak } from './actions/habits';
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
 import { createClient } from '../lib/supabase/client';
 import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell, Calendar as CalendarIcon } from 'lucide-react';
@@ -60,6 +60,7 @@ function loadHabitsFromStorage(): HabitItem[] {
 export default function DashboardPage() {
   const [habits, setHabits] = useState<HabitItem[]>(() => loadHabitsFromStorage());
   const [partner, setPartner] = useState<PartnerStatus | null>(null);
+  const [allPartners, setAllPartners] = useState<PartnerStatus[]>([]);
   const [partnerMessages, setPartnerMessages] = useState<PartnerMessage[]>([]);
   const [userStreak, setUserStreak] = useState<number>(1);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -103,11 +104,12 @@ export default function DashboardPage() {
 
   const { gregorian, hijri } = getFormattedDates();
 
-  // جلب إنجاز ورسائل الشريك والستريك الحقيقي
+  // جلب إنجاز ورسائل الشركاء والستريك الحقيقي
   const loadPartnerData = async () => {
     try {
-      const partnerData = await fetchPartnerProgress();
-      setPartner(partnerData || null);
+      const partnersList = await fetchAllPartnersProgress();
+      setAllPartners(partnersList);
+      setPartner(partnersList.length > 0 ? partnersList[0] : null);
 
       const msgs = await getPartnerMessages();
       setPartnerMessages(msgs || []);
@@ -344,6 +346,7 @@ export default function DashboardPage() {
             {/* بطاقة الشريك التفاعلية */}
             <PartnerCard
               partner={partner}
+              allPartners={allPartners}
               recentMessages={partnerMessages}
               onOpenInviteModal={() => setIsInviteModalOpen(true)}
               onRefreshPartner={loadPartnerData}
