@@ -13,7 +13,7 @@ export interface HabitDefinition {
   title: string;
   category: string;
   icon: string;
-  group: 'prayers' | 'sunan' | 'quran' | 'adhkar';
+  group: 'prayers' | 'sunan' | 'quran' | 'adhkar' | 'fasting';
 }
 
 export const ALL_HABITS: HabitDefinition[] = [
@@ -24,14 +24,21 @@ export const ALL_HABITS: HabitDefinition[] = [
   { id: 'h4', title: 'صلاة المغرب في وقتها مع الجماعة', category: 'صلاة', icon: '🌇', group: 'prayers' },
   { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', category: 'صلاة', icon: '🌙', group: 'prayers' },
   // السنن والنوافل
-  { id: 'h6', title: 'السنن الرواتب (12 ركعة)', category: 'صلاة', icon: '🕌', group: 'sunan' },
+  { id: 'h1_sunnah', title: 'سنة الفجر الراتبة (ركعتان قبلهما)', category: 'سنة', icon: '✨', group: 'sunan' },
+  { id: 'h2_sunnah', title: 'سنة الظهر الراتبة (4 قبلها و 2 بعدها)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h4_sunnah', title: 'سنة المغرب الراتبة (ركعتان بعدها)', category: 'سنة', icon: '✨', group: 'sunan' },
+  { id: 'h5_sunnah', title: 'سنة العشاء الراتبة (ركعتان بعدها)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h6', title: 'السنن الرواتب العامة', category: 'سنة', icon: '🕌', group: 'sunan' },
   { id: 'h7', title: 'صلاة الوتر وركعتي قيام الليل', category: 'صلاة', icon: '✨', group: 'sunan' },
   // ورد القرآن
-  { id: 'h8', title: 'ورد القرآن اليومي (جزء أو نصف حزب)', category: 'قرآن', icon: '📖', group: 'quran' },
+  { id: 'h8', title: 'ورد القرآن اليومي (جزء أو نصف حزب أو صفحة)', category: 'قرآن', icon: '📖', group: 'quran' },
   // الأذكار
-  { id: 'h9', title: 'أذكار الصباح', category: 'أذكار', icon: '📿', group: 'adhkar' },
-  { id: 'h10', title: 'أذكار المساء', category: 'أذكار', icon: '🌿', group: 'adhkar' },
-  { id: 'h11', title: 'أذكار أخرى (النوم، الأكل، الخروج...)', category: 'أذكار', icon: '🤲', group: 'adhkar' },
+  { id: 'h9', title: 'أذكار الصباح والتسبيح', category: 'أذكار', icon: '📿', group: 'adhkar' },
+  { id: 'h10', title: 'أذكار المساء وحصن المسلم', category: 'أذكار', icon: '🌿', group: 'adhkar' },
+  { id: 'h11', title: 'أذكار النوم وسورة الملك', category: 'أذكار', icon: '🤲', group: 'adhkar' },
+  // صيام التطوع
+  { id: 'h_fast_mon_thu', title: 'صيام الإثنين والخميس', category: 'صيام', icon: '🌙', group: 'fasting' },
+  { id: 'h_fast_white_days', title: 'صيام الأيام البيض (13 و 14 و 15)', category: 'صيام', icon: '🌕', group: 'fasting' },
 ];
 
 interface DayHabitModalProps {
@@ -236,6 +243,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
   const sunanHabits = ALL_HABITS.filter((h) => h.group === 'sunan');
   const quranHabits = ALL_HABITS.filter((h) => h.group === 'quran');
   const adhkarHabits = ALL_HABITS.filter((h) => h.group === 'adhkar');
+  const fastingHabits = ALL_HABITS.filter((h) => h.group === 'fasting');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -494,6 +502,48 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
                       className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
                         isChecked
                           ? 'bg-emerald-600 text-white'
+                          : 'border-2 border-gray-300 dark:border-slate-600'
+                      }`}
+                    >
+                      {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* قسم صيام التطوع */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span>🌙 صيام التطوع والأيام البيض</span>
+            </h3>
+            <div className="space-y-2">
+              {fastingHabits.map((habit) => {
+                const isChecked = completedIds.includes(habit.id);
+                return (
+                  <div
+                    key={habit.id}
+                    onClick={() => handleToggleSingle(habit)}
+                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isChecked
+                        ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800 text-indigo-950 dark:text-indigo-100 shadow-2xs'
+                        : 'bg-white dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-700 dark:text-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl shrink-0">{habit.icon}</span>
+                      <div>
+                        <p className={`text-sm font-semibold ${isChecked ? 'line-through opacity-85 text-indigo-900 dark:text-indigo-200' : ''}`}>
+                          {habit.title}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
+                        isChecked
+                          ? 'bg-indigo-600 text-white'
                           : 'border-2 border-gray-300 dark:border-slate-600'
                       }`}
                     >

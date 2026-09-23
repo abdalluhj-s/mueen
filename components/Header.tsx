@@ -54,12 +54,13 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');
 
   const bellRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // قراءة حالة الثيم الحالي
+    // قراءة حالة الثيم الحالي وحجم الخط
     if (typeof window !== 'undefined') {
       const isDark = document.documentElement.classList.contains('dark') ||
         localStorage.getItem('mueen_theme') === 'dark';
@@ -67,8 +68,20 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
       if (isDark) {
         document.documentElement.classList.add('dark');
       }
+
+      const savedSize = (localStorage.getItem('mueen_font_size') as 'sm' | 'md' | 'lg') || 'md';
+      setFontSize(savedSize);
+      document.documentElement.setAttribute('data-font-size', savedSize);
     }
   }, []);
+
+  const changeFontSize = (size: 'sm' | 'md' | 'lg') => {
+    setFontSize(size);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mueen_font_size', size);
+      document.documentElement.setAttribute('data-font-size', size);
+    }
+  };
 
   const toggleTheme = () => {
     if (isDarkMode) {
@@ -198,6 +211,46 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                 ? `${userStreak} أيام متتالية`
                 : `${userStreak} يوماً متتالياً`}
             </span>
+          </div>
+
+          {/* محدد حجم الخط (3 أحجام: صغير / قياسي / كبير) */}
+          <div className="flex items-center bg-gray-100 dark:bg-slate-800 p-0.5 rounded-full border border-gray-200/80 dark:border-slate-700 text-xs shrink-0" title="تغيير حجم خط الموقع والتطبيق">
+            <button
+              type="button"
+              onClick={() => changeFontSize('sm')}
+              aria-label="خط صغير"
+              className={`px-2 py-0.5 rounded-full transition-all text-[11px] font-bold cursor-pointer ${
+                fontSize === 'sm'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              أ-
+            </button>
+            <button
+              type="button"
+              onClick={() => changeFontSize('md')}
+              aria-label="خط قياسي"
+              className={`px-2 py-0.5 rounded-full transition-all text-[12px] font-bold cursor-pointer ${
+                fontSize === 'md'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              أ
+            </button>
+            <button
+              type="button"
+              onClick={() => changeFontSize('lg')}
+              aria-label="خط كبير"
+              className={`px-2 py-0.5 rounded-full transition-all text-[13px] font-black cursor-pointer ${
+                fontSize === 'lg'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              أ+
+            </button>
           </div>
 
           {/* زر تبديل الوضع الليلي (Dark Mode Toggle) */}

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Check, BookOpen, Sun, Moon, Compass, Clock, Trash2 } from 'lucide-react';
+import { Check, BookOpen, Sun, Moon, Compass, Clock, Trash2, Sparkles } from 'lucide-react';
 import { HabitItem, HabitCategory } from '../types/dashboard';
 
 interface HabitRowProps {
@@ -17,26 +17,37 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
         return {
           icon: <Compass className="w-3.5 h-3.5" />,
           bg: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/60',
+          label: 'فريضة',
+        };
+      case 'سنة':
+        return {
+          icon: <Sparkles className="w-3.5 h-3.5 text-emerald-500" />,
+          bg: 'bg-teal-50/80 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200/60 dark:border-teal-800/60',
+          label: 'سنة راتبة',
         };
       case 'قرآن':
         return {
           icon: <BookOpen className="w-3.5 h-3.5" />,
           bg: 'bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border-teal-200/70 dark:border-teal-800/60',
+          label: 'قرآن',
         };
       case 'أذكار':
         return {
           icon: <Sun className="w-3.5 h-3.5" />,
           bg: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/60',
+          label: 'أذكار',
         };
       case 'صيام':
         return {
           icon: <Moon className="w-3.5 h-3.5" />,
           bg: 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-800/60',
+          label: 'صيام',
         };
       default:
         return {
           icon: <Clock className="w-3.5 h-3.5" />,
           bg: 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700',
+          label: category,
         };
     }
   };
@@ -47,6 +58,8 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
     <div
       onClick={() => onToggle(habit.id)}
       className={`group relative flex items-center justify-between p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+        habit.isSunnah ? 'mr-2 sm:mr-4 border-r-4 border-r-teal-500/60 bg-teal-50/20 dark:bg-teal-950/10' : ''
+      } ${
         habit.completed
           ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-800/50 shadow-xs'
           : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700/60 hover:shadow-sm'
@@ -124,7 +137,7 @@ export const HabitRow: React.FC<HabitRowProps> = ({ habit, onToggle, onDelete })
           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border ${badge.bg}`}
         >
           {badge.icon}
-          <span>{habit.category}</span>
+          <span>{badge.label || habit.category}</span>
         </span>
 
         {onDelete && (

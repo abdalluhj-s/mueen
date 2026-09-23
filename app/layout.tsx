@@ -53,6 +53,9 @@ export default function RootLayout({
                   } else {
                     document.documentElement.classList.remove('dark');
                   }
+
+                  var fontSize = localStorage.getItem('mueen_font_size') || 'md';
+                  document.documentElement.setAttribute('data-font-size', fontSize);
                 } catch (e) {}
               })();
             `,

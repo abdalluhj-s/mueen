@@ -14,26 +14,43 @@ import { createClient } from '../lib/supabase/client';
 import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell, Calendar as CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 
-// إصدار العادات الافتراضية — تغييره يؤدي لإعادة ضبط LocalStorage للزوار الجدد
-const HABITS_VERSION = 'v3';
+// إصدار العادات الافتراضية — تغييره يؤدي لتحديث القائمة للترتيب الزمني والسنن والصيام
+const HABITS_VERSION = 'v4';
 const HABITS_KEY = 'mueen_habits';
 const VERSION_KEY = 'mueen_habits_version';
 
 const DEFAULT_HABITS: HabitItem[] = [
-  // ===== الصلوات =====
-  { id: 'h1', title: 'صلاة الفجر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان الفجر' },
-  { id: 'h2', title: 'صلاة الظهر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان الظهر' },
-  { id: 'h3', title: 'صلاة العصر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان العصر' },
-  { id: 'h4', title: 'صلاة المغرب في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان المغرب' },
-  { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', category: 'صلاة', completed: false, timeHint: 'عند أذان العشاء' },
-  { id: 'h6', title: 'السنن الرواتب (12 ركعة)', category: 'صلاة', completed: false, timeHint: 'قبل وبعد الصلوات المفروضة' },
-  { id: 'h7', title: 'صلاة الوتر وركعتي قيام الليل', category: 'صلاة', completed: false, timeHint: 'في الثلث الأخير من الليل' },
-  // ===== القرآن =====
-  { id: 'h8', title: 'ورد القرآن اليومي (جزء أو نصف حزب)', category: 'قرآن', completed: false, timeHint: 'بعد صلاة الفجر' },
-  // ===== الأذكار =====
-  { id: 'h9', title: 'أذكار الصباح', category: 'أذكار', completed: false, timeHint: 'بعد صلاة الفجر حتى الشروق' },
-  { id: 'h10', title: 'أذكار المساء', category: 'أذكار', completed: false, timeHint: 'من العصر حتى غروب الشمس' },
-  { id: 'h11', title: 'أذكار أخرى (النوم، الأكل، الخروج...)', category: 'أذكار', completed: false, timeHint: 'طوال اليوم' },
+  // ===== الفجر (الفريضة + السنة + أذكار الصباح) =====
+  { id: 'h1', title: 'صلاة الفجر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'fajr', timeHint: 'عند أذان الفجر' },
+  { id: 'h1_sunnah', title: 'سنة الفجر الراتبة (ركعتان قبلهما)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'fajr', timeHint: 'قبل الفريضة («خير من الدنيا وما فيها»)' },
+  { id: 'h9', title: 'أذكار الصباح والتسبيح', category: 'أذكار', completed: false, timeSlot: 'fajr', timeHint: 'بعد صلاة الفجر حتى الشروق' },
+
+  // ===== الظهر (الفريضة + السنة) =====
+  { id: 'h2', title: 'صلاة الظهر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'dhuhr', timeHint: 'عند أذان الظهر' },
+  { id: 'h2_sunnah', title: 'سنة الظهر الراتبة (4 ركعات قبلها و 2 بعدها)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'dhuhr', timeHint: 'سنن الظهر الرواتب' },
+
+  // ===== العصر (الفريضة + أذكار المساء) =====
+  { id: 'h3', title: 'صلاة العصر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'asr', timeHint: 'عند أذان العصر' },
+  { id: 'h10', title: 'أذكار المساء وحصن المسلم', category: 'أذكار', completed: false, timeSlot: 'asr', timeHint: 'من العصر حتى غروب الشمس' },
+
+  // ===== المغرب (الفريضة + السنة) =====
+  { id: 'h4', title: 'صلاة المغرب في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'maghrib', timeHint: 'عند أذان المغرب' },
+  { id: 'h4_sunnah', title: 'سنة المغرب الراتبة (ركعتان بعدها)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'maghrib', timeHint: 'بعد صلاة المغرب مباشرة' },
+
+  // ===== العشاء والليل (الفريضة + السنة + قيام الليل والوتر) =====
+  { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'isha', timeHint: 'عند أذان العشاء' },
+  { id: 'h5_sunnah', title: 'سنة العشاء الراتبة (ركعتان بعدها)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'isha', timeHint: 'بعد صلاة العشاء مباشرة' },
+  { id: 'h7', title: 'صلاة الشفع والوتر وقيام الليل', category: 'صلاة', completed: false, timeSlot: 'night', timeHint: 'في الثلث الأخير أو قبل النوم' },
+
+  // ===== ورد القرآن الكريم =====
+  { id: 'h8', title: 'ورد القرآن اليومي (جزء أو نصف حزب أو صفحة)', category: 'قرآن', completed: false, timeSlot: 'quran', timeHint: 'تلاوة وتدبر مع المصحف' },
+
+  // ===== ختام اليوم وأذكار النوم =====
+  { id: 'h11', title: 'أذكار النوم وسورة الملك', category: 'أذكار', completed: false, timeSlot: 'night', timeHint: 'عند الإيواء إلى الفراش' },
+
+  // ===== صيام التطوع =====
+  { id: 'h_fast_mon_thu', title: 'صيام الإثنين والخميس', category: 'صيام', fastingType: 'mon_thu', completed: false, timeSlot: 'fasting', timeHint: 'سنة مؤكدة تُعرض فيها الأعمال' },
+  { id: 'h_fast_white_days', title: 'صيام الأيام البيض (13 و 14 و 15)', category: 'صيام', fastingType: 'white_days', completed: false, timeSlot: 'fasting', timeHint: 'ثلاثة أيام من كل شهر هجري' },
 ];
 
 // قراءة العادات من LocalStorage مع دعم الإصدار (Versioned)
