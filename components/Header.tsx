@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Flame, Bell, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked, Settings } from 'lucide-react';
+import { Sparkles, Flame, Bell, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked, Settings, Download, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '../lib/supabase/client';
 import { ProfileEditModal } from './ProfileEditModal';
+import { InstallAppModal } from './InstallAppModal';
 
 interface HeaderProps {
   userStreak?: number;
@@ -56,11 +57,17 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');
 
+  // حالة تثبيت التطبيق PWA
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
   const bellRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // قراءة حالة الثيم الحالي وحجم الخط
+    // قراءة حالة الثيم الحالي وحجم الخط وتثبيت التطبيق
     if (typeof window !== 'undefined') {
       const isDark = document.documentElement.classList.contains('dark') ||
         localStorage.getItem('mueen_theme') === 'dark';
@@ -72,8 +79,46 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
       const savedSize = (localStorage.getItem('mueen_font_size') as 'sm' | 'md' | 'lg') || 'md';
       setFontSize(savedSize);
       document.documentElement.setAttribute('data-font-size', savedSize);
+
+      // فحص هل التطبيق مفتوح مسبقاً كـ PWA مستقل
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true;
+      setIsStandalone(isStandaloneMode);
+
+      // فحص أجهزة iOS
+      const ua = window.navigator.userAgent.toLowerCase();
+      setIsIOS(/iphone|ipad|ipod/.test(ua));
+
+      // التقاط حدث التثبيت للمتصفحات المدعومة
+      const handleBeforeInstall = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      };
     }
   }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+          setIsStandalone(true);
+        }
+      } catch {
+        setIsInstallModalOpen(true);
+      }
+    } else {
+      setIsInstallModalOpen(true);
+    }
+  };
 
   const changeFontSize = (size: 'sm' | 'md' | 'lg') => {
     setFontSize(size);
@@ -252,6 +297,28 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
               أ+
             </button>
           </div>
+
+          {/* زر تثبيت التطبيق على الجهاز */}
+          {!isStandalone ? (
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              title="تثبيت مُعين كتطبيق على شاشتك"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs active:scale-[0.98] cursor-pointer shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">تثبيت التطبيق</span>
+              <span className="xs:hidden">تثبيت</span>
+            </button>
+          ) : (
+            <span
+              title="التطبيق مثبت على جهازك"
+              className="hidden sm:flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-800 text-[11px] font-semibold shrink-0"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <span>مثبّت</span>
+            </span>
+          )}
 
           {/* زر تبديل الوضع الليلي (Dark Mode Toggle) */}
           <button
@@ -435,6 +502,15 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
           }}
         />
       )}
+
+      {/* نافذة إرشادات وخطوات تثبيت التطبيق */}
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        onNativeInstall={handleInstallClick}
+        hasNativePrompt={!!deferredPrompt}
+        isIOS={isIOS}
+      />
     </header>
   );
 };
