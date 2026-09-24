@@ -25,9 +25,10 @@ export const ALL_HABITS: HabitDefinition[] = [
   { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', category: 'صلاة', icon: '🌙', group: 'prayers' },
   // السنن والنوافل
   { id: 'h1_sunnah', title: 'سنة الفجر الراتبة (ركعتان قبلهما)', category: 'سنة', icon: '✨', group: 'sunan' },
-  { id: 'h2_sunnah', title: 'سنة الظهر الراتبة (4 قبلها و 2 بعدها)', category: 'سنة', icon: '🕌', group: 'sunan' },
-  { id: 'h4_sunnah', title: 'سنة المغرب الراتبة (ركعتان بعدها)', category: 'سنة', icon: '✨', group: 'sunan' },
-  { id: 'h5_sunnah', title: 'سنة العشاء الراتبة (ركعتان بعدها)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h2_sunnah_before', title: 'سنة الظهر القبلية (4 ركعات قبل الفريضة)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h2_sunnah_after', title: 'سنة الظهر البعدية (ركعتان بعد الفريضة)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h4_sunnah', title: 'سنة المغرب البعدية (ركعتان بعدها)', category: 'سنة', icon: '✨', group: 'sunan' },
+  { id: 'h5_sunnah', title: 'سنة العشاء البعدية (ركعتان بعدها)', category: 'سنة', icon: '🕌', group: 'sunan' },
   { id: 'h6', title: 'السنن الرواتب العامة', category: 'سنة', icon: '🕌', group: 'sunan' },
   { id: 'h7', title: 'صلاة الوتر وركعتي قيام الليل', category: 'صلاة', icon: '✨', group: 'sunan' },
   // ورد القرآن

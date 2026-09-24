@@ -21,31 +21,32 @@ import {
 import Link from 'next/link';
 
 // إصدار العادات الافتراضية — تغييره يؤدي لتحديث القائمة للترتيب الزمني والسنن والصيام
-const HABITS_VERSION = 'v4';
+const HABITS_VERSION = 'v5';
 const HABITS_KEY = 'mueen_habits';
 const VERSION_KEY = 'mueen_habits_version';
 
 const DEFAULT_HABITS: HabitItem[] = [
   // ===== الفجر (الفريضة + السنة + أذكار الصباح) =====
-  { id: 'h1', title: 'صلاة الفجر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'fajr', timeHint: 'عند أذان الفجر' },
+  { id: 'h1', title: 'صلاة الفجر في المسجد مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'fajr', timeHint: 'عند أذان الفجر في المسجد' },
   { id: 'h1_sunnah', title: 'سنة الفجر الراتبة (ركعتان قبلهما)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'fajr', timeHint: 'قبل الفريضة («خير من الدنيا وما فيها»)' },
   { id: 'h9', title: 'أذكار الصباح والتسبيح', category: 'أذكار', completed: false, timeSlot: 'fajr', timeHint: 'بعد صلاة الفجر حتى الشروق' },
 
-  // ===== الظهر (الفريضة + السنة) =====
-  { id: 'h2', title: 'صلاة الظهر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'dhuhr', timeHint: 'عند أذان الظهر' },
-  { id: 'h2_sunnah', title: 'سنة الظهر الراتبة (4 ركعات قبلها و 2 بعدها)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'dhuhr', timeHint: 'سنن الظهر الرواتب' },
+  // ===== الظهر (السنة القبلية + الفريضة + السنة البعدية) =====
+  { id: 'h2_sunnah_before', title: 'سنة الظهر القبلية (4 ركعات قبل الفريضة)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'dhuhr', timeHint: 'أربع ركعات بتسليمتين قبل الظهر' },
+  { id: 'h2', title: 'صلاة الظهر في المسجد مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'dhuhr', timeHint: 'عند أذان الظهر في المسجد' },
+  { id: 'h2_sunnah_after', title: 'سنة الظهر البعدية (ركعتان بعد الفريضة)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'dhuhr', timeHint: 'ركعتان بعد صلاة الظهر' },
 
   // ===== العصر (الفريضة + أذكار المساء) =====
-  { id: 'h3', title: 'صلاة العصر في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'asr', timeHint: 'عند أذان العصر' },
-  { id: 'h10', title: 'أذكار المساء وحصن المسلم', category: 'أذكار', completed: false, timeSlot: 'asr', timeHint: 'من العصر حتى غروب الشمس' },
+  { id: 'h3', title: 'صلاة العصر في المسجد مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'asr', timeHint: 'عند أذان العصر في المسجد' },
+  { id: 'h10', title: 'أذكار المساء وحصن المسلم', category: 'أذكار', completed: false, timeSlot: 'asr', timeHint: 'بعد صلاة العصر حتى غروب الشمس' },
 
-  // ===== المغرب (الفريضة + السنة) =====
-  { id: 'h4', title: 'صلاة المغرب في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'maghrib', timeHint: 'عند أذان المغرب' },
-  { id: 'h4_sunnah', title: 'سنة المغرب الراتبة (ركعتان بعدها)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'maghrib', timeHint: 'بعد صلاة المغرب مباشرة' },
+  // ===== المغرب (الفريضة + السنة البعدية) =====
+  { id: 'h4', title: 'صلاة المغرب في المسجد مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'maghrib', timeHint: 'عند أذان المغرب في المسجد' },
+  { id: 'h4_sunnah', title: 'سنة المغرب البعدية (ركعتان بعد الفريضة)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'maghrib', timeHint: 'بعد صلاة المغرب مباشرة' },
 
-  // ===== العشاء والليل (الفريضة + السنة + قيام الليل والوتر) =====
-  { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'isha', timeHint: 'عند أذان العشاء' },
-  { id: 'h5_sunnah', title: 'سنة العشاء الراتبة (ركعتان بعدها)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'isha', timeHint: 'بعد صلاة العشاء مباشرة' },
+  // ===== العشاء والليل (الفريضة + السنة البعدية + الشفع والوتر) =====
+  { id: 'h5', title: 'صلاة العشاء في المسجد مع الجماعة', category: 'صلاة', completed: false, timeSlot: 'isha', timeHint: 'عند أذان العشاء في المسجد' },
+  { id: 'h5_sunnah', title: 'سنة العشاء البعدية (ركعتان بعد الفريضة)', category: 'سنة', isSunnah: true, completed: false, timeSlot: 'isha', timeHint: 'بعد صلاة العشاء مباشرة' },
   { id: 'h7', title: 'صلاة الشفع والوتر وقيام الليل', category: 'صلاة', completed: false, timeSlot: 'night', timeHint: 'في الثلث الأخير أو قبل النوم' },
 
   // ===== ورد القرآن الكريم =====
@@ -256,52 +257,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* شريط تنبيه وضع الضيف للزوار غير المسجلين */}
-        {!isLoggedIn && showGuestBanner && (
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 shadow-xs animate-in fade-in duration-300">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <p className="leading-relaxed">
-                <strong className="font-bold">وضع الحفظ المحلي:</strong> إنجازاتك تُحفظ حالياً على جهازك. سجّل الدخول لحفظ بياناتك في السجل الشهري ومشاركتها مع رفيقك.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-              <Link
-                href="/login"
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold transition-all flex items-center gap-1.5 shadow-xs"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>تسجيل الدخول</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setShowGuestBanner(false)}
-                aria-label="إغلاق التنبيه"
-                className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* شريط الترحيب بالمستخدم المتصل وتأكيد المزامنة */}
-        {isLoggedIn && (
-          <div className="bg-emerald-50/70 dark:bg-slate-900/80 border border-emerald-200/60 dark:border-slate-800 rounded-2xl px-4 sm:px-5 py-3 flex items-center justify-between gap-3 text-xs sm:text-sm shadow-xs animate-in fade-in duration-300">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span className="text-gray-700 dark:text-gray-200 truncate">
-                مرحباً بك يا <strong>{userName}</strong> • تم تفعيل مزامنة أورادك وسجلك الشهري سحابياً ☁️
-              </span>
-            </div>
-            <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-200/70 dark:border-emerald-800 shrink-0">
-              سحابي نشط
-            </span>
-          </div>
-        )}
-
         {/* شريط الإنجاز اليومي العام والتاريخ الهجري والميلادي */}
         <DailyProgressCard
           completedCount={completedCount}
@@ -312,30 +267,6 @@ export default function DashboardPage() {
           countryName={dateInfo.country?.name}
           timeString={dateInfo.timeString}
         />
-
-        {/* رابط استدراك الأيام السابقة في التقويم */}
-        <div className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-950/60 rounded-2xl p-3.5 sm:p-4 shadow-2xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <CalendarIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-                فاتك تسجيل صلوات أو أوراد يوم سابق؟ 📅
-              </p>
-              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                يمكنك استدراك وتسجيل عادات أي يوم في الشهر عبر التقويم الشهري والسنوي
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/progress"
-            className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-colors shrink-0 flex items-center gap-1 shadow-2xs cursor-pointer"
-          >
-            <span>فتح التقويم</span>
-            <span>←</span>
-          </Link>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* العمود الرئيسي: قائمة عادات اليوم */}
