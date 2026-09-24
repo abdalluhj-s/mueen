@@ -56,6 +56,9 @@ export default function RootLayout({
 
                   var fontSize = localStorage.getItem('mueen_font_size') || 'md';
                   document.documentElement.setAttribute('data-font-size', fontSize);
+
+                  var colorTheme = localStorage.getItem('mueen_color_theme') || 'emerald';
+                  document.documentElement.setAttribute('data-color-theme', colorTheme);
                 } catch (e) {}
               })();
             `,

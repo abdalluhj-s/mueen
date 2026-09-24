@@ -99,11 +99,13 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
 
   let hijriDate = '';
   try {
+    const adj = typeof window !== 'undefined' ? (parseInt(localStorage.getItem('mueen_hijri_adjustment') || '0', 10) || 0) : 0;
+    const adjustedDateObj = new Date(dateObj.getTime() + adj * 86400000);
     hijriDate = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    }).format(dateObj);
+    }).format(adjustedDateObj);
   } catch {
     hijriDate = '';
   }

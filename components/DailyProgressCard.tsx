@@ -7,6 +7,9 @@ interface DailyProgressCardProps {
   totalCount: number;
   hijriDate?: string;
   gregorianDate?: string;
+  countryFlag?: string;
+  countryName?: string;
+  timeString?: string;
 }
 
 export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
@@ -14,6 +17,9 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
   totalCount,
   hijriDate = '10 ربيع الأول 1448 هـ',
   gregorianDate = '21 سبتمبر 2026 م',
+  countryFlag,
+  countryName,
+  timeString,
 }) => {
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
@@ -32,13 +38,22 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
       <div className="absolute -bottom-16 -right-16 w-56 h-56 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
 
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* قسم التواريخ */}
+        {/* قسم التواريخ والدولة */}
         <div>
-          <div className="flex items-center gap-2 text-emerald-200 text-xs sm:text-sm font-medium mb-1">
-            <Calendar className="w-4 h-4 text-emerald-300" />
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-emerald-200 text-xs sm:text-sm font-medium mb-1">
+            <Calendar className="w-4 h-4 text-emerald-300 shrink-0" />
+            {countryFlag && <span>{countryFlag}</span>}
             <span>{hijriDate}</span>
             <span className="text-emerald-400/60">•</span>
             <span>{gregorianDate}</span>
+            {countryName && (
+              <>
+                <span className="text-emerald-400/60">•</span>
+                <span className="text-emerald-300/90 text-xs font-normal">
+                  ({countryName})
+                </span>
+              </>
+            )}
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-wide">
             ورد اليوم وعهده

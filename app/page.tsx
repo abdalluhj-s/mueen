@@ -12,6 +12,12 @@ import { toggleHabitCompletion, fetchPartnerProgress, fetchAllPartnersProgress, 
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
 import { createClient } from '../lib/supabase/client';
 import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell, Calendar as CalendarIcon } from 'lucide-react';
+import { 
+  getCountryDateTime, 
+  getSavedCountryId, 
+  getSavedHijriAdjustment, 
+  SETTINGS_CHANGE_EVENT 
+} from '../lib/timeSettings';
 import Link from 'next/link';
 
 // إصدار العادات الافتراضية — تغييره يؤدي لتحديث القائمة للترتيب الزمني والسنن والصيام
@@ -91,35 +97,30 @@ export default function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // حساب التواريخ الهجرية والميلادية اليوم بدقة
-  const getFormattedDates = () => {
-    try {
-      const now = new Date();
-      const gregorian = new Intl.DateTimeFormat('ar-EG', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }).format(now);
+  // حساب التواريخ الهجرية والميلادية والوقت حسب الدولة وضبط التاريخ المخصص
+  const [dateInfo, setDateInfo] = useState(() => {
+    return getCountryDateTime(getSavedCountryId(), getSavedHijriAdjustment());
+  });
 
-      const hijri = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }).format(now);
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      setDateInfo(getCountryDateTime(getSavedCountryId(), getSavedHijriAdjustment()));
+    };
 
-      return {
-        gregorian: `${gregorian} م`,
-        hijri: `${hijri} هـ`,
-      };
-    } catch {
-      return {
-        gregorian: '22 سبتمبر 2026 م',
-        hijri: '10 ربيع الأول 1448 هـ',
-      };
+    handleSettingsUpdate();
+    const timer = setInterval(handleSettingsUpdate, 60000);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(SETTINGS_CHANGE_EVENT, handleSettingsUpdate);
     }
-  };
 
-  const { gregorian, hijri } = getFormattedDates();
+    return () => {
+      clearInterval(timer);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(SETTINGS_CHANGE_EVENT, handleSettingsUpdate);
+      }
+    };
+  }, []);
 
   // جلب إنجاز ورسائل الشركاء والستريك الحقيقي
   const loadPartnerData = async () => {
@@ -305,8 +306,11 @@ export default function DashboardPage() {
         <DailyProgressCard
           completedCount={completedCount}
           totalCount={habits.length}
-          hijriDate={hijri}
-          gregorianDate={gregorian}
+          hijriDate={dateInfo.hijriDate}
+          gregorianDate={dateInfo.gregorianDate}
+          countryFlag={dateInfo.country?.flag}
+          countryName={dateInfo.country?.name}
+          timeString={dateInfo.timeString}
         />
 
         {/* رابط استدراك الأيام السابقة في التقويم */}

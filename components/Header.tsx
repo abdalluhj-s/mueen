@@ -334,6 +334,16 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
             )}
           </button>
 
+          {/* زر الإعدادات والتخصيص */}
+          <Link
+            href="/settings"
+            title="الإعدادات والتخصيص"
+            aria-label="الإعدادات والتخصيص"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+          </Link>
+
           {/* قائمة التنبيهات (Notification Dropdown المتجاوبة والآمنة للشاشات الصغيرة) */}
           <div className="relative" ref={bellRef}>
             <button
@@ -435,38 +445,53 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                   )}
                 </button>
 
-                {/* قائمة الملف الشخصي المنبثقة */}
+                {/* قائمة الملف الشخصي المنبثقة المحمية من الخروج خارج شاشة الموبايل */}
                 {isProfileOpen && (
-                  <div
-                    dir="rtl"
-                    className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800 p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
-                  >
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 mb-2">
-                      <div className="font-bold text-gray-900 dark:text-white text-sm truncate">{userName}</div>
-                      <div className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{currentUser.email}</div>
+                  <>
+                    <div
+                      className="fixed inset-0 bg-black/40 backdrop-blur-2xs z-40 sm:hidden"
+                      onClick={() => setIsProfileOpen(false)}
+                    />
+                    <div
+                      dir="rtl"
+                      className="fixed inset-x-4 top-16 sm:absolute sm:inset-x-auto sm:left-0 sm:right-auto sm:top-full sm:mt-2 w-auto sm:w-60 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
+                    >
+                      <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 mb-2">
+                        <div className="font-bold text-gray-900 dark:text-white text-sm truncate">{userName}</div>
+                        <div className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{currentUser.email}</div>
+                      </div>
+
+                      <Link
+                        href="/settings"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="w-full px-3 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                      >
+                        <Settings className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>الإعدادات والتخصيص</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileEditOpen(true);
+                          setIsProfileOpen(false);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                      >
+                        <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>تعديل الملف الشخصي</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="w-full px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>تسجيل الخروج</span>
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileEditOpen(true);
-                        setIsProfileOpen(false);
-                      }}
-                      className="w-full px-3 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer mb-1"
-                    >
-                      <Settings className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span>تعديل الملف الشخصي</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="w-full px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>تسجيل الخروج</span>
-                    </button>
-                  </div>
+                  </>
                 )}
               </div>
             ) : (

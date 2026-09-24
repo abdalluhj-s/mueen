@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookMarked, BookOpen, Calendar, User, Download, Sparkles, X } from 'lucide-react';
+import { Home, BookMarked, BookOpen, Calendar, User, Download, Sparkles, X, Settings } from 'lucide-react';
 import { createClient } from '../lib/supabase/client';
 import { ProfileEditModal } from './ProfileEditModal';
 
@@ -86,14 +86,10 @@ export const MobileBottomNav: React.FC = () => {
       isActive: pathname.startsWith('/progress'),
     },
     {
-      label: currentUser ? 'حسابي' : 'دخول',
-      href: currentUser ? '#' : '/login',
-      icon: User,
-      isActive: pathname === '/login' || isProfileModalOpen,
-      onClick: currentUser ? (e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsProfileModalOpen(true);
-      } : undefined,
+      label: 'الإعدادات',
+      href: '/settings',
+      icon: Settings,
+      isActive: pathname.startsWith('/settings'),
     },
   ];
 
@@ -181,7 +177,6 @@ export const MobileBottomNav: React.FC = () => {
               <Link
                 key={item.label}
                 href={item.href}
-                onClick={item.onClick}
                 className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all cursor-pointer ${
                   item.isActive
                     ? 'text-emerald-700 dark:text-emerald-400 font-bold scale-105'
@@ -193,10 +188,10 @@ export const MobileBottomNav: React.FC = () => {
                     ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400' 
                     : ''
                 }`}>
-                  {item.icon === User && userAvatar ? (
+                  {item.icon === Settings && userAvatar ? (
                     <img
                       src={userAvatar}
-                      alt="حسابي"
+                      alt="الإعدادات"
                       className="w-5 h-5 rounded-full object-cover border border-emerald-600 shadow-2xs"
                     />
                   ) : (
