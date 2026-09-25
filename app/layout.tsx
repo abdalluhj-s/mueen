@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import React from 'react';
 import './globals.css';
 import { MobileBottomNav } from '../components/MobileBottomNav';
+import { NotificationInitializer } from '../components/NotificationInitializer';
 
 export const viewport: Viewport = {
   themeColor: '#065f46',
@@ -66,6 +67,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 antialiased min-h-screen selection:bg-emerald-100 selection:text-emerald-900 dark:selection:bg-emerald-900 dark:selection:text-emerald-100 transition-colors duration-200 pb-20 sm:pb-0">
+        <NotificationInitializer />
         {children}
         <MobileBottomNav />
       </body>

@@ -26,6 +26,7 @@ import { Header } from '../../components/Header';
 import { createClient } from '../../lib/supabase/client';
 import { ProfileEditModal } from '../../components/ProfileEditModal';
 import { InstallAppModal } from '../../components/InstallAppModal';
+import { NotificationSettingsCard } from '../../components/NotificationSettingsCard';
 import { 
   COLOR_THEMES, 
   SUPPORTED_COUNTRIES, 
@@ -596,6 +597,11 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* ================= 4. قسم إشعارات الهاتف وتنبيهات الأوراد ================= */}
+        <section>
+          <NotificationSettingsCard />
         </section>
 
         {/* ================= 5. قسم تثبيت التطبيق على الجهاز ================= */}

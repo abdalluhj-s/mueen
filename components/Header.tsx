@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Flame, Bell, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked, Settings, Download, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Flame, Bell, BellRing, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked, Settings, Download, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '../lib/supabase/client';
 import { ProfileEditModal } from './ProfileEditModal';
@@ -421,6 +421,15 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                       <p className="text-center py-6 text-xs text-gray-400 dark:text-gray-500">لا توجد تنبيهات جديدة</p>
                     )}
                   </div>
+
+                  <Link
+                    href="/settings"
+                    onClick={() => setIsBellOpen(false)}
+                    className="mt-3 flex items-center justify-center gap-1.5 py-2 px-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors border border-emerald-200/60 dark:border-emerald-800/60 shadow-2xs"
+                  >
+                    <BellRing className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>ضبط إشعارات الهاتف ومواقيتها 📲</span>
+                  </Link>
                 </div>
               </>
             )}
