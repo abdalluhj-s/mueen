@@ -11,8 +11,7 @@ import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
 import { toggleHabitCompletion, fetchPartnerProgress, fetchAllPartnersProgress, getUserRealStreak } from './actions/habits';
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
 import { createClient } from '../lib/supabase/client';
-import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Settings, ChevronLeft, Calendar as CalendarIcon, Share2 } from 'lucide-react';
-import { ShareAppModal } from '../components/ShareAppModal';
+import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Settings, ChevronLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { 
   getCountryDateTime, 
   getSavedCountryId, 
@@ -97,7 +96,6 @@ export default function DashboardPage() {
   const [userStreak, setUserStreak] = useState<number>(1);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -362,28 +360,6 @@ export default function DashboardPage() {
               <ChevronLeft className={`w-4 h-4 text-gray-400 group-hover:text-emerald-600 transition-transform ${lang === 'en' ? 'rotate-180' : ''}`} />
             </Link>
 
-            {/* بطاقة مشاركة التطبيق مع الأصحاب (Bilingual Share) */}
-            <button
-              type="button"
-              onClick={() => setIsShareModalOpen(true)}
-              className="w-full text-start group flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-50/50 to-transparent dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-500 dark:hover:border-emerald-500 shadow-xs hover:shadow-sm transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shrink-0 shadow-sm shadow-emerald-600/30">
-                  <Share2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    {t('shareSidebarCardTitle', lang)}
-                  </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                    {t('shareSidebarCardSub', lang)}
-                  </p>
-                </div>
-              </div>
-              <ChevronLeft className={`w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform ${lang === 'en' ? 'rotate-180' : ''}`} />
-            </button>
-
             {/* بطاقة الوصول لصفحة الإعدادات والتخصيص */}
             <Link
               href="/settings"
@@ -426,14 +402,6 @@ export default function DashboardPage() {
           <Link href="/quran" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium">
             📖 {t('quran', lang)}
           </Link>
-          <span>•</span>
-          <button
-            type="button"
-            onClick={() => setIsShareModalOpen(true)}
-            className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium flex items-center gap-1 cursor-pointer"
-          >
-            📤 {t('shareApp', lang)}
-          </button>
         </footer>
       </main>
 
@@ -451,13 +419,6 @@ export default function DashboardPage() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddHabit={handleAddHabit}
-      />
-
-      {/* نافذة مشاركة المنصة والتطبيق (Share Modal) */}
-      <ShareAppModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        defaultLang={lang}
       />
     </div>
   );

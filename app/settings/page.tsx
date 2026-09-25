@@ -23,8 +23,15 @@ import {
   Info,
   ChevronDown,
   Languages,
-  BellRing
+  BellRing,
+  Share2,
+  Copy,
+  Check,
+  MessageCircle,
+  Send,
+  Link as LinkIcon
 } from 'lucide-react';
+import { SHARE_CONTENT } from '../../lib/shareContent';
 import { Header } from '../../components/Header';
 import { createClient } from '../../lib/supabase/client';
 import { ProfileEditModal } from '../../components/ProfileEditModal';
@@ -65,6 +72,7 @@ export default function SettingsPage() {
     fontSize: false,
     country: false,
     notifications: false,
+    share: false,
     install: false,
     account: false,
   });
@@ -96,6 +104,62 @@ export default function SettingsPage() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
+
+  // حالة مشاركة المنصة والتطبيق (Bilingual Share Hub)
+  const [selectedShareLang, setSelectedShareLang] = useState<Language>(() => getSavedLanguage());
+  const [shareCopiedType, setShareCopiedType] = useState<'none' | 'full' | 'link'>('none');
+  const [canNativeShare, setCanNativeShare] = useState<boolean>(false);
+
+  const handleCopyShareFull = async () => {
+    const text = SHARE_CONTENT[selectedShareLang].text;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setShareCopiedType('full');
+    setTimeout(() => setShareCopiedType('none'), 3000);
+  };
+
+  const handleCopyShareLink = async () => {
+    const url = SHARE_CONTENT[selectedShareLang].url;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setShareCopiedType('link');
+    setTimeout(() => setShareCopiedType('none'), 3000);
+  };
+
+  const handleNativeShare = async () => {
+    const item = SHARE_CONTENT[selectedShareLang];
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: item.title,
+          text: item.shortSummary,
+          url: item.url,
+        });
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          handleCopyShareFull();
+        }
+      }
+    } else {
+      handleCopyShareFull();
+    }
+  };
 
   // تحميل الإعدادات عند البدء
   useEffect(() => {
@@ -131,6 +195,7 @@ export default function SettingsPage() {
 
       const ua = window.navigator.userAgent.toLowerCase();
       setIsIOS(/iphone|ipad|ipod/.test(ua));
+      setCanNativeShare(typeof navigator !== 'undefined' && !!navigator.share);
 
       // جلب المستخدم الحالي
       const supabase = createClient();
@@ -659,7 +724,194 @@ export default function SettingsPage() {
           )}
         </section>
 
-        {/* ================= 6. قسم تثبيت التطبيق على الجهاز (PWA) [قابل للطي] ================= */}
+        {/* ================= 6. قسم مشاركة المنصة والتطبيق (Bilingual Share Hub) [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('share')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('shareAppTitle', lang)}
+                  </h2>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
+                    {selectedShareLang === 'ar' ? 'عربي 🇸🇦' : 'English 🇬🇧'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {t('shareAppSubtitle', lang)}
+                </p>
+              </div>
+            </div>
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.share ? 'rotate-180' : ''}`} />
+          </div>
+
+          {openSections.share && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 space-y-4 animate-in fade-in duration-200">
+              {/* شريط تبديل لغة المشاركة (عربي / إنجليزي) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <span>{lang === 'ar' ? 'اختر لغة الوصف والرابط للمشاركة:' : 'Choose sharing language & link:'}</span>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
+                    {selectedShareLang === 'ar' ? 'Arabic ?lang=ar' : 'English ?lang=en'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 p-1.5 bg-gray-100 dark:bg-slate-800/80 rounded-2xl border border-gray-200/80 dark:border-slate-700/60">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedShareLang('ar'); setShareCopiedType('none'); }}
+                    className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      selectedShareLang === 'ar'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm border border-emerald-500/20'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>{t('shareLangTabAr', lang)}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedShareLang('en'); setShareCopiedType('none'); }}
+                    className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      selectedShareLang === 'en'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-sm border border-emerald-500/20'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>{t('shareLangTabEn', lang)}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* تنبيه نجاح النسخ الإيجابي */}
+              {shareCopiedType !== 'none' && (
+                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs sm:text-sm flex items-center gap-2.5 animate-in fade-in duration-200 shadow-xs">
+                  <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="font-semibold">
+                    {shareCopiedType === 'full' ? t('copiedSuccessToast', lang) : t('copiedLinkToast', lang)}
+                  </span>
+                </div>
+              )}
+
+              {/* شريط الرابط المباشر السريع */}
+              <div className="p-3 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-gray-200/80 dark:border-slate-800 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 overflow-hidden text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-mono" dir="ltr">
+                  <LinkIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="truncate">{SHARE_CONTENT[selectedShareLang].url}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyShareLink}
+                  title={t('copyLinkOnly', lang)}
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
+                >
+                  {shareCopiedType === 'link' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{t('copyLinkOnly', lang).replace(' 🔗', '')}</span>
+                </button>
+              </div>
+
+              {/* معاينة النص الكامل المخصص للمشاركة */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    {lang === 'ar' ? 'معاينة نص الرسالة التي ستُرسل:' : 'Message preview:'}
+                  </span>
+                  <span className="text-[11px] text-gray-400">
+                    {selectedShareLang === 'ar' ? 'لغة عربية' : 'English'}
+                  </span>
+                </div>
+
+                <div 
+                  dir={selectedShareLang === 'ar' ? 'rtl' : 'ltr'}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-gray-50/80 dark:bg-slate-950/60 border border-gray-200/80 dark:border-slate-800 text-xs sm:text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-sans max-h-56 overflow-y-auto select-all whitespace-pre-line shadow-inner"
+                >
+                  {SHARE_CONTENT[selectedShareLang].text}
+                </div>
+              </div>
+
+              {/* أزرار المشاركة المباشرة عبر شبكات التواصل */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {lang === 'ar' ? 'مشاركة فورية عبر:' : 'Quick share via:'}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <a
+                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(SHARE_CONTENT[selectedShareLang].text)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2.5 px-3 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all group"
+                  >
+                    <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span>{t('shareWhatsApp', lang)}</span>
+                  </a>
+
+                  <a
+                    href={`https://t.me/share/url?url=${encodeURIComponent(SHARE_CONTENT[selectedShareLang].url)}&text=${encodeURIComponent(SHARE_CONTENT[selectedShareLang].shortSummary)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2.5 px-3 rounded-2xl bg-[#229ED9]/10 hover:bg-[#229ED9]/20 border border-[#229ED9]/30 text-[#229ED9] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all group"
+                  >
+                    <Send className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span>{t('shareTelegram', lang)}</span>
+                  </a>
+
+                  <a
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_CONTENT[selectedShareLang].shortSummary)}&url=${encodeURIComponent(SHARE_CONTENT[selectedShareLang].url)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2.5 px-3 rounded-2xl bg-gray-900/10 dark:bg-white/10 hover:bg-gray-900/20 dark:hover:bg-white/20 border border-gray-400/30 text-gray-800 dark:text-gray-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all group"
+                  >
+                    <span className="font-mono text-sm group-hover:scale-110 transition-transform">𝕏</span>
+                    <span>{t('shareTwitter', lang)}</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* أزرار الإجراءات */}
+              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleCopyShareFull}
+                  className="flex-1 py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20 cursor-pointer active:scale-[0.98]"
+                >
+                  {shareCopiedType === 'full' ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>{t('copiedSuccessToast', lang)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>{t('copyFullMessage', lang)}</span>
+                    </>
+                  )}
+                </button>
+
+                {canNativeShare && (
+                  <button
+                    type="button"
+                    onClick={handleNativeShare}
+                    className="py-3 px-4 rounded-2xl bg-white dark:bg-slate-800 border border-emerald-300/80 dark:border-emerald-700/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-slate-700/80 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                  >
+                    <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>{t('nativeShareBtn', lang)}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ================= 7. قسم تثبيت التطبيق على الجهاز (PWA) [قابل للطي] ================= */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
           <div
             onClick={() => toggleSection('install')}
@@ -715,7 +967,7 @@ export default function SettingsPage() {
           )}
         </section>
 
-        {/* ================= 7. قسم الحساب والمزامنة [قابل للطي] ================= */}
+        {/* ================= 8. قسم الحساب والمزامنة [قابل للطي] ================= */}
         <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
           <div
             onClick={() => toggleSection('account')}
