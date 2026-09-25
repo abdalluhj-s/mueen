@@ -60,6 +60,15 @@ export default function RootLayout({
 
                   var colorTheme = localStorage.getItem('mueen_color_theme') || 'emerald';
                   document.documentElement.setAttribute('data-color-theme', colorTheme);
+
+                  var urlParams = new URLSearchParams(window.location.search);
+                  var paramLang = urlParams.get('lang');
+                  var lang = (paramLang === 'en' || paramLang === 'ar') ? paramLang : (localStorage.getItem('mueen_language') || 'ar');
+                  if (paramLang === 'en' || paramLang === 'ar') {
+                    localStorage.setItem('mueen_language', paramLang);
+                  }
+                  document.documentElement.setAttribute('lang', lang);
+                  document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
                 } catch (e) {}
               })();
             `,

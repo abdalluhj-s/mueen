@@ -8,6 +8,16 @@ export const LANGUAGE_CHANGE_EVENT = 'mueen_language_changed';
 export function getSavedLanguage(): Language {
   if (typeof window === 'undefined') return 'ar';
   try {
+    // 1. فحص رابط الصفحة أولاً لدعم روابط المشاركة المباشرة (?lang=en أو ?lang=ar)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramLang = urlParams.get('lang');
+    if (paramLang === 'en' || paramLang === 'ar') {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, paramLang);
+      document.documentElement.setAttribute('lang', paramLang);
+      document.documentElement.setAttribute('dir', paramLang === 'ar' ? 'rtl' : 'ltr');
+      return paramLang;
+    }
+
     const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     return saved === 'en' ? 'en' : 'ar';
   } catch {
