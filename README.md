@@ -17,8 +17,7 @@
 
 ## 🚀 الروابط المباشرة
 - **مستودع GitHub**: [https://github.com/abdalluhj-s/mueen](https://github.com/abdalluhj-s/mueen)
-- **الرابط التجريبي الحي (Live Preview)**: [https://mueen-platform.netlify.app](https://mueen-platform.netlify.app)
-- **النشر على Vercel بضغطة زر**: [Deploy on Vercel](https://vercel.com/new/clone?repository-url=https://github.com/abdalluhj-s/mueen)
+- **الرابط الحي للمنصة (Cloudflare Workers)**: [https://mueen.ah4549658.workers.dev](https://mueen.ah4549658.workers.dev)
 
 ---
 

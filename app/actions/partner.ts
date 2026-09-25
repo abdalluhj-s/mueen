@@ -8,7 +8,7 @@ import { createClient } from '../../lib/supabase/server';
  * جلب الرابط الأساسي الحالي للموقع ديناميكياً
  */
 function getBaseUrl(): string {
-  let defaultUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://mueen-platform.netlify.app';
+  let defaultUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://mueen.ah4549658.workers.dev';
   try {
     const headersList = headers();
     const host = headersList.get('x-forwarded-host') || headersList.get('host');

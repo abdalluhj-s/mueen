@@ -1,5 +1,5 @@
 // Mueen (مُعين) Official Share Descriptions and Direct Links (Bilingual: Arabic & English)
-// Dynamic Origin: Automatically adopts current browser origin (window.location.origin) or Netlify default
+// Dynamic Origin: Automatically adopts current browser origin (window.location.origin) or Cloudflare Workers default
 
 export interface ShareData {
   title: string;
@@ -14,7 +14,7 @@ export function getShareContent(lang: 'ar' | 'en', baseOrigin?: string): ShareDa
     origin = window.location.origin;
   }
   if (!origin) {
-    origin = 'https://mueen-platform.netlify.app';
+    origin = 'https://mueen.ah4549658.workers.dev';
   }
   const cleanOrigin = origin.replace(/\/$/, '');
   const url = `${cleanOrigin}/?lang=${lang}`;
