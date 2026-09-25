@@ -339,6 +339,27 @@ export default function DashboardPage() {
               </p>
             </div>
 
+            {/* بطاقة الوصول لسجل الإنجاز والتقويم واستدراك العادات */}
+            <Link
+              href="/progress"
+              className="group flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 shadow-xs hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100/80 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shrink-0">
+                  <CalendarIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    {t('progressCardSidebarTitle', lang)}
+                  </div>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    {t('progressCardSidebarSub', lang)}
+                  </p>
+                </div>
+              </div>
+              <ChevronLeft className={`w-4 h-4 text-gray-400 group-hover:text-emerald-600 transition-transform ${lang === 'en' ? 'rotate-180' : ''}`} />
+            </Link>
+
             {/* بطاقة الوصول لصفحة الإعدادات والتخصيص */}
             <Link
               href="/settings"
@@ -365,6 +386,10 @@ export default function DashboardPage() {
         {/* تذييل الصفحة الأنيق */}
         <footer className="mt-10 pt-6 border-t border-gray-200/60 dark:border-slate-800/80 text-center text-xs text-gray-400 dark:text-gray-500 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
           <span>{lang === 'ar' ? 'منصة مُعين © شريك الالتزام بالطاعات' : 'Mueen Platform © Spiritual Habit Partner'}</span>
+          <span>•</span>
+          <Link href="/progress" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium">
+            📅 {t('progress', lang)}
+          </Link>
           <span>•</span>
           <Link href="/settings" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium">
             ⚙️ {t('settings', lang)}

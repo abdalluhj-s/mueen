@@ -1,5 +1,6 @@
 import { getTodayHadith } from '../data/hadiths';
 import { getIslamicDayStatus } from './islamicCalendar';
+import { getSavedLanguage } from './translations';
 
 export interface NotificationScheduleConfig {
   enabled: boolean;
@@ -9,10 +10,14 @@ export interface NotificationScheduleConfig {
   eveningTime: string;        // الافتراضي 17:00
   nightPrayer: boolean;       // قيام الليل والوتر (الساعة 10:00 مساءً)
   nightTime: string;          // الافتراضي 22:00
+  fridayTasks: boolean;       // إشعار ظهور سنن ومهام الجمعة وسورة الكهف
+  fridayTasksTime: string;    // الافتراضي 07:30
   fridaySalawat: boolean;     // الصلاة على النبي ﷺ يوم الجمعة
   fridaySalawatTime: string;  // الافتراضي 09:00
   fridayHour: boolean;        // ساعة الاستجابة يوم الجمعة (آخر ساعة بعد العصر)
   fridayHourTime: string;     // الافتراضي 16:30
+  fastingAlert: boolean;      // تنبيه حلول موعد الصيام المسنون وظهور خانة الصيام في التطبيق
+  fastingTime: string;        // الافتراضي 04:30
   dailyReview: boolean;       // هل أنهيت أوراد اليوم؟ (ختام اليوم)
   dailyReviewTime: string;    // الافتراضي 22:30
   dailyHadith: boolean;       // حديث اليوم النبوي الشريف
@@ -27,10 +32,14 @@ export const DEFAULT_NOTIFICATION_CONFIG: NotificationScheduleConfig = {
   eveningTime: '17:00',
   nightPrayer: true,
   nightTime: '22:00',
+  fridayTasks: true,
+  fridayTasksTime: '07:30',
   fridaySalawat: true,
   fridaySalawatTime: '09:00',
   fridayHour: true,
   fridayHourTime: '16:30',
+  fastingAlert: true,
+  fastingTime: '04:30',
   dailyReview: true,
   dailyReviewTime: '22:30',
   dailyHadith: true,
@@ -312,71 +321,126 @@ export async function sendTestNotification(type:
   | 'morning' 
   | 'evening' 
   | 'night' 
+  | 'fridayTasks'
   | 'fridaySalawat' 
   | 'fridayHour' 
   | 'dailyReview' 
   | 'dailyHadith'
   | 'fastingDay'
 ): Promise<{ success: boolean; deliveredToOS: boolean; message: string }> {
+  const isEn = getSavedLanguage() === 'en';
+
   switch (type) {
     case 'morning':
-      return sendDeviceNotification('☀️ تذكير أذكار الصباح | مُعين', {
-        body: 'لا تنسَ أذكار الصباح وحصن المسلم قبل شروق الشمس بنصف ساعة لتنال بركة يومك وحفظه.',
-        url: '/adhkar',
-        tag: 'mueen-morning',
-      });
+      return sendDeviceNotification(
+        isEn ? '☀️ Morning Adhkar Reminder | Mueen' : '☀️ تذكير أذكار الصباح | مُعين',
+        {
+          body: isEn
+            ? 'Do not forget your morning adhkar and daily portion 30 minutes before sunrise to begin your day with light and blessings.'
+            : 'لا تنسَ أذكار الصباح وحصن المسلم قبل شروق الشمس بنصف ساعة لتنال بركة يومك وحفظه.',
+          url: '/adhkar',
+          tag: 'mueen-morning',
+        }
+      );
 
     case 'evening':
-      return sendDeviceNotification('🌙 تذكير أذكار المساء | مُعين', {
-        body: 'أقبل وقت أذكار المساء قبل غروب الشمس بنصف ساعة.. حصّن نفسك وأهلك بأذكار المساء.',
-        url: '/adhkar',
-        tag: 'mueen-evening',
-      });
+      return sendDeviceNotification(
+        isEn ? '🌙 Evening Adhkar Reminder | Mueen' : '🌙 تذكير أذكار المساء | مُعين',
+        {
+          body: isEn
+            ? 'Evening adhkar time has arrived 30 minutes before sunset. Protect yourself and your family with the prophetic remembrance.'
+            : 'أقبل وقت أذكار المساء قبل غروب الشمس بنصف ساعة.. حصّن نفسك وأهلك بأذكار المساء.',
+          url: '/adhkar',
+          tag: 'mueen-evening',
+        }
+      );
 
     case 'night':
-      return sendDeviceNotification('🌌 قيام الليل والوتر | مُعين', {
-        body: 'ركعات في جوف الليل وسجدة تُناجي فيها ربك.. لا تنسَ صلاة الشفع والوتر قبل نومك.',
-        url: '/',
-        tag: 'mueen-night',
-      });
+      return sendDeviceNotification(
+        isEn ? '🌌 Night Prayer & Witr | Mueen' : '🌌 قيام الليل والوتر | مُعين',
+        {
+          body: isEn
+            ? 'Quiet moments in the depth of the night.. Do not miss Witr prayer before going to sleep.'
+            : 'ركعات في جوف الليل وسجدة تُناجي فيها ربك.. لا تنسَ صلاة الشفع والوتر قبل نومك.',
+          url: '/',
+          tag: 'mueen-night',
+        }
+      );
+
+    case 'fridayTasks':
+      return sendDeviceNotification(
+        isEn ? '🕌 Blessed Friday Sunan & Tasks | Mueen' : '🕌 سنن ومهام يوم الجمعة المباركة | مُعين',
+        {
+          body: isEn
+            ? 'Friday Sunan & Tasks are now active in Mueen (Surah Al-Kahf, Salawat & Dua Hour) — open Mueen now to log your deeds!'
+            : 'ظهرت الآن مهام وسنن يوم الجمعة المباركة في مُعين (قراءة سورة الكهف، الصلاة على النبي ﷺ، وساعة الاستجابة) — افتح مُعين الآن لتسجيلها!',
+          url: '/',
+          tag: 'mueen-friday-tasks',
+        }
+      );
 
     case 'fridaySalawat':
-      return sendDeviceNotification('🕌 الصلاة على النبي ﷺ | الجمعة المباركة', {
-        body: '«إن من أفضل أيامكم يوم الجمعة، فأكثروا عليّ من الصلاة فيه».. صلِّ وسلم على حبيبك ﷺ.',
-        url: '/',
-        tag: 'mueen-friday-salawat',
-      });
+      return sendDeviceNotification(
+        isEn ? '🕌 Salawat on the Prophet ﷺ | Friday' : '🕌 الصلاة على النبي ﷺ | الجمعة المباركة',
+        {
+          body: isEn
+            ? '«Among the most excellent of your days is Friday, so send abundant blessings upon me therein».'
+            : '«إن من أفضل أيامكم يوم الجمعة، فأكثروا عليّ من الصلاة فيه».. صلِّ وسلم على حبيبك ﷺ.',
+          url: '/',
+          tag: 'mueen-friday-salawat',
+        }
+      );
 
     case 'fridayHour':
-      return sendDeviceNotification('🤲 ساعة الاستجابة المباركة | مُعين', {
-        body: 'الآن آخر ساعة من نهار يوم الجمعة المبارك.. تحرَّ ساعة الإجابة ولا تنسَ نفسك وإخوانك من صالح الدعاء.',
-        url: '/',
-        tag: 'mueen-friday-hour',
-      });
+      return sendDeviceNotification(
+        isEn ? '🤲 Friday Hour of Acceptance | Mueen' : '🤲 ساعة الاستجابة المباركة | مُعين',
+        {
+          body: isEn
+            ? 'Now is the final hour before sunset on Friday.. Supplicate sincerely and remember your family and the Ummah.'
+            : 'الآن آخر ساعة من نهار يوم الجمعة المبارك.. تحرَّ ساعة الإجابة ولا تنسَ نفسك وإخوانك من صالح الدعاء.',
+          url: '/',
+          tag: 'mueen-friday-hour',
+        }
+      );
 
     case 'dailyReview':
-      return sendDeviceNotification('📋 ختام اليوم وتثبيت الأوراد | مُعين', {
-        body: 'هل أنهيت أورادك وسننك اليوم؟ افتح مُعين وسجّل إنجازك لتواصل سلسلة ثباتك الإيماني.',
-        url: '/',
-        tag: 'mueen-daily-review',
-      });
+      return sendDeviceNotification(
+        isEn ? '📋 Daily Review: End of Day Deeds | Mueen' : '📋 ختام اليوم وتثبيت الأوراد | مُعين',
+        {
+          body: isEn
+            ? 'Did you complete your daily portions and habits today? Open Mueen now to record your streak before sleep.'
+            : 'هل أنهيت أورادك وسننك اليوم؟ افتح مُعين وسجّل إنجازك لتواصل سلسلة ثباتك الإيماني.',
+          url: '/',
+          tag: 'mueen-daily-review',
+        }
+      );
 
     case 'dailyHadith': {
       const hadith = getTodayHadith();
-      return sendDeviceNotification(`📜 حديث اليوم النبوي الشريف | ${hadith.topic}`, {
-        body: `${hadith.text} — عن ${hadith.narrator} (${hadith.source})`,
-        url: '/adhkar',
-        tag: 'mueen-daily-hadith',
-      });
+      return sendDeviceNotification(
+        isEn ? `📜 Hadith of the Day | ${hadith.topic}` : `📜 حديث اليوم النبوي الشريف | ${hadith.topic}`,
+        {
+          body: `${hadith.text} — عن ${hadith.narrator} (${hadith.source})`,
+          url: '/adhkar',
+          tag: 'mueen-daily-hadith',
+        }
+      );
     }
 
     case 'fastingDay': {
       const islamicStatus = getIslamicDayStatus();
-      const title = islamicStatus.fastingInfo.titleAr || 'صيام سنة اليوم المبارك';
-      const body = islamicStatus.fastingInfo.descAr 
-        ? `${islamicStatus.fastingInfo.descAr} — ${islamicStatus.fastingInfo.hadithQuoteAr}`
-        : 'اليوم يوم صيام مسنون.. لا تنسَ نية الصيام وتجديد العهد مع الله، تقبل الله طاعتكم.';
-      return sendDeviceNotification(`🌙 ${title} | مُعين`, {
+      const fastingInfo = islamicStatus.fastingInfo;
+      const title = isEn
+        ? `🌙 ${fastingInfo.titleEn || 'Sunnah Fasting Day'} | Mueen`
+        : `🌙 ${fastingInfo.titleAr || 'صيام سنة اليوم المبارك'} | مُعين`;
+      const body = isEn
+        ? (fastingInfo.descEn
+            ? `Voluntary fasting section is now active in Mueen (${fastingInfo.titleEn}): ${fastingInfo.descEn}`
+            : 'Voluntary fasting section is now active in Mueen — set your intention and record your fasting!')
+        : (fastingInfo.descAr
+            ? `ظهرت خانة الصيام اليوم في مُعين (${fastingInfo.titleAr}): ${fastingInfo.descAr}`
+            : 'اليوم يوم صيام مسنون.. ظهرت خانة الصيام في مُعين، لا تنسَ نية الصيام وتسجيلها.');
+      return sendDeviceNotification(title, {
         body,
         url: '/',
         tag: 'mueen-fasting-day',
@@ -434,8 +498,13 @@ export function checkAndTriggerScheduledNotifications() {
     markSentToday('dailyHadith');
   }
 
-  // 6. سنن وصلاة الجمعة (يوم الجمعة فقط)
+  // 6. سنن ومهام وصلاة الجمعة (يوم الجمعة فقط)
   if (dayOfWeek === 5) {
+    if (config.fridayTasks && currentTimeStr === config.fridayTasksTime && !hasBeenSentToday('fridayTasks')) {
+      sendTestNotification('fridayTasks');
+      markSentToday('fridayTasks');
+    }
+
     if (config.fridaySalawat && currentTimeStr === config.fridaySalawatTime && !hasBeenSentToday('fridaySalawat')) {
       sendTestNotification('fridaySalawat');
       markSentToday('fridaySalawat');
@@ -447,9 +516,9 @@ export function checkAndTriggerScheduledNotifications() {
     }
   }
 
-  // 7. تذكير صيام اليوم (يوم الصيام فقط في الصباح الباكر عند أذان الفجر)
+  // 7. تذكير صيام اليوم (يوم الصيام فقط فجراً بموعد fastingTime)
   const islamicStatus = getIslamicDayStatus(now);
-  if (islamicStatus.fastingInfo.isFastingDay && currentTimeStr === '05:00' && !hasBeenSentToday('fastingDay')) {
+  if (islamicStatus.fastingInfo.isFastingDay && config.fastingAlert && currentTimeStr === config.fastingTime && !hasBeenSentToday('fastingDay')) {
     sendTestNotification('fastingDay');
     markSentToday('fastingDay');
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Languages } from 'lucide-react';
+import { Sun, Moon, Languages, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { getSavedLanguage, saveLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
@@ -103,6 +103,16 @@ export const Header: React.FC<HeaderProps> = () => {
               {fontSize === 'sm' ? '₁' : fontSize === 'md' ? '₂' : '₃'}
             </span>
           </button>
+
+          {/* زر السجل والتقويم السريع */}
+          <Link
+            href="/progress"
+            title={lang === 'ar' ? 'سجل الإنجاز والتقويم' : 'Progress & Calendar'}
+            aria-label={t('progress', lang)}
+            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0"
+          >
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-300 hover:text-emerald-500" />
+          </Link>
 
           {/* زر تبديل الوضع الليلي (Dark Mode Toggle) */}
           <button

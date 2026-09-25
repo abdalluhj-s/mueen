@@ -9,6 +9,7 @@ import {
 import { fetchMonthLogs, fetchYearSummary, getUserRealStreak } from '../app/actions/habits';
 import { DayHabitModal } from './DayHabitModal';
 import Link from 'next/link';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 interface CalendarManagerProps {
   initialLogs?: Record<string, string[]>;
@@ -16,10 +17,18 @@ interface CalendarManagerProps {
   isLoggedIn: boolean;
 }
 
-const MONTH_NAMES = [
+const MONTH_NAMES_AR = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
 ];
+
+const MONTH_NAMES_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const WEEKDAYS_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const CalendarManager: React.FC<CalendarManagerProps> = ({
   initialLogs = {},
@@ -30,6 +39,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth(); // 0-indexed
 
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
   const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly');
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth); // 0-indexed
@@ -185,11 +195,19 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
   const maxPossibleHabits = daysInMonth * 11;
   const monthlyCompletionRate = maxPossibleHabits > 0 ? Math.round((totalCompletedThisMonth / maxPossibleHabits) * 100) : 0;
 
-  // صياغة عنوان الشهر
-  const currentMonthTitle = `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
+
+  // صياغة أسماء الشهور وأيام الأسبوع حسب اللغة
+  const monthNames = lang === 'ar' ? MONTH_NAMES_AR : MONTH_NAMES_EN;
+  const weekdayNames = lang === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN;
+  const currentMonthTitle = `${monthNames[selectedMonth]} ${selectedYear}`;
 
   return (
-    <div className="space-y-8">
+    <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="space-y-8">
       {/* نافذة استدراك وتعديل اليوم المحدد */}
       {selectedDateForModal && (
         <DayHabitModal
@@ -216,7 +234,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
             }`}
           >
             <CalendarIcon className="w-4 h-4" />
-            <span>التقويم الشهري</span>
+            <span>{t('monthlyCalendar', lang)}</span>
           </button>
 
           <button
@@ -229,7 +247,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
             }`}
           >
             <Grid className="w-4 h-4" />
-            <span>النظرة السنوية (12 شهر)</span>
+            <span>{t('yearlyOverview', lang)}</span>
           </button>
         </div>
 
@@ -240,10 +258,10 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
               type="button"
               onClick={handlePrevMonth}
               className="p-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-2xs flex items-center gap-1 cursor-pointer text-xs sm:text-sm"
-              title="الشهر السابق"
+              title={t('prevMonth', lang)}
             >
-              <ChevronRight className="w-4 h-4" />
-              <span className="hidden sm:inline">السابق</span>
+              {lang === 'ar' ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              <span className="hidden sm:inline">{t('prevMonth', lang)}</span>
             </button>
 
             <span className="px-4 py-2 font-bold text-sm sm:text-base text-gray-900 dark:text-white min-w-[130px] text-center bg-gray-50 dark:bg-slate-800/60 rounded-xl border border-gray-100 dark:border-slate-800">
@@ -254,10 +272,10 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
               type="button"
               onClick={handleNextMonth}
               className="p-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-2xs flex items-center gap-1 cursor-pointer text-xs sm:text-sm"
-              title="الشهر التالي"
+              title={t('nextMonth', lang)}
             >
-              <span className="hidden sm:inline">التالي</span>
-              <ChevronLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('nextMonth', lang)}</span>
+              {lang === 'ar' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
 
             {(selectedYear !== currentYear || selectedMonth !== currentMonth) && (
@@ -265,10 +283,10 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
                 type="button"
                 onClick={handleResetToCurrentMonth}
                 className="px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center gap-1 cursor-pointer"
-                title="الرجوع للشهر الحالي"
+                title={t('currentMonthBtn', lang)}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>اليوم</span>
+                <span>{t('currentMonthBtn', lang)}</span>
               </button>
             )}
           </div>
@@ -278,24 +296,24 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
               type="button"
               onClick={handlePrevYear}
               className="p-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-2xs flex items-center gap-1 cursor-pointer text-xs sm:text-sm"
-              title="السنة السابقة"
+              title={t('prevYear', lang)}
             >
-              <ChevronRight className="w-4 h-4" />
-              <span>السنة السابقة</span>
+              {lang === 'ar' ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              <span>{t('prevYear', lang)}</span>
             </button>
 
             <span className="px-5 py-2 font-bold text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-slate-800/60 rounded-xl border border-gray-100 dark:border-slate-800">
-              سنة {selectedYear}
+              {lang === 'ar' ? `سنة ${selectedYear}` : `Year ${selectedYear}`}
             </span>
 
             <button
               type="button"
               onClick={handleNextYear}
               className="p-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-2xs flex items-center gap-1 cursor-pointer text-xs sm:text-sm"
-              title="السنة التالية"
+              title={t('nextYear', lang)}
             >
-              <span>السنة التالية</span>
-              <ChevronLeft className="w-4 h-4" />
+              <span>{t('nextYear', lang)}</span>
+              {lang === 'ar' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
 
             {selectedYear !== currentYear && (
@@ -305,7 +323,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
                 className="px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>السنة الحالية</span>
+                <span>{t('currentYearBtn', lang)}</span>
               </button>
             )}
           </div>
@@ -319,9 +337,9 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
             <Flame className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-medium">الشعلة الحالية</p>
+            <p className="text-xs text-gray-400 font-medium">{t('currentStreakCard', lang)}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
-              {streak} <span className="text-xs font-normal text-gray-400">أيام</span>
+              {streak} <span className="text-xs font-normal text-gray-400">{t('daysUnit', lang)}</span>
             </p>
           </div>
         </div>
@@ -331,9 +349,9 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
             <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-medium">إجمالي الإنجازات</p>
+            <p className="text-xs text-gray-400 font-medium">{t('totalCompletedCard', lang)}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
-              {totalCompletedThisMonth} <span className="text-xs font-normal text-gray-400">عادة</span>
+              {totalCompletedThisMonth} <span className="text-xs font-normal text-gray-400">{t('habitsUnit', lang)}</span>
             </p>
           </div>
         </div>
@@ -343,9 +361,9 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
             <Target className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-medium">أيام الالتزام</p>
+            <p className="text-xs text-gray-400 font-medium">{t('activeDaysCard', lang)}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
-              {activeDaysThisMonth} <span className="text-xs font-normal text-gray-400">من {daysInMonth} يوم</span>
+              {activeDaysThisMonth} <span className="text-xs font-normal text-gray-400">{t('ofTotalDays', lang).replace('{total}', String(daysInMonth))}</span>
             </p>
           </div>
         </div>
@@ -355,7 +373,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
             <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-medium">نسبة الشهر</p>
+            <p className="text-xs text-gray-400 font-medium">{t('monthRateCard', lang)}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
               {monthlyCompletionRate}%
             </p>
@@ -369,23 +387,23 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
           <div className="p-4 sm:p-6 border-b border-gray-50 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <span>سجل {currentMonthTitle}</span>
+                <span>{t('monthLogHeading', lang).replace('{month}', currentMonthTitle)}</span>
               </h2>
               <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
-                اضغط على أي يوم لاستعراض عاداته واستدراك أو تعديل ما فاتك بكل سهولة ✏️
+                {t('clickDayToReview', lang)}
               </p>
             </div>
 
             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>انقر لتسجيل واستدراك اليوم</span>
+              <span>{t('clickToLogDay', lang)}</span>
             </div>
           </div>
 
           <div className="p-3 sm:p-6">
             {/* أسماء أيام الأسبوع */}
             <div className="grid grid-cols-7 gap-1.5 sm:gap-3 mb-2">
-              {['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'].map((day) => (
+              {weekdayNames.map((day) => (
                 <div key={day} className="text-center text-[11px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 py-1.5">
                   {day}
                 </div>
@@ -437,7 +455,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
                     {/* شارة اليوم الحالي */}
                     {isCurrentToday && (
                       <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white shadow-2xs whitespace-nowrap z-10">
-                        اليوم
+                        {t('today', lang)}
                       </span>
                     )}
 
@@ -453,7 +471,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
                         </span>
                       ) : (
                         <span className="text-[10px] text-gray-300 dark:text-slate-600 group-hover:text-gray-500 transition-colors">
-                          {isPast ? 'استدرك' : '—'}
+                          {isPast ? t('makeUpBadge', lang) : '—'}
                         </span>
                       )}
                     </div>
@@ -466,23 +484,23 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-slate-800 pt-5">
               <div className="flex items-center gap-1.5">
                 <div className="w-3.5 h-3.5 rounded bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700"></div>
-                <span>لم يُسجل</span>
+                <span>{t('legendNotLogged', lang)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3.5 h-3.5 rounded bg-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-900"></div>
-                <span>قليل (1-2)</span>
+                <span>{t('legendLow', lang)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3.5 h-3.5 rounded bg-emerald-200 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800"></div>
-                <span>متوسط (3-5)</span>
+                <span>{t('legendMedium', lang)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3.5 h-3.5 rounded bg-emerald-500 text-white"></div>
-                <span>جيد (6-9)</span>
+                <span>{t('legendGood', lang)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3.5 h-3.5 rounded bg-emerald-600 text-white shadow-2xs"></div>
-                <span>ممتاز (10-11)</span>
+                <span>{t('legendExcellent', lang)}</span>
               </div>
             </div>
           </div>
@@ -495,17 +513,17 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <span>شهور سنة {selectedYear} الإجمالية</span>
+                <span>{t('yearlyMonthsHeading', lang).replace('{year}', String(selectedYear))}</span>
               </h2>
               <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                اختر أي شهر لتصفحه بالتفصيل واستدراك أي يوم فيه
+                {t('yearlyMonthsSubtitle', lang)}
               </p>
             </div>
           </div>
 
           {/* شبكة شهور السنة الـ 12 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {MONTH_NAMES.map((monthName, idx) => {
+            {monthNames.map((monthName, idx) => {
               const mStart = new Date(selectedYear, idx, 1);
               const mDaysCount = new Date(selectedYear, idx + 1, 0).getDate();
               const isCurrent = selectedYear === currentYear && idx === currentMonth;
@@ -544,12 +562,12 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
                         <span>{monthName}</span>
                         {isCurrent && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                            الشهر الحالي
+                            {t('currentMonthBadge', lang)}
                           </span>
                         )}
                       </h3>
                       <span className="text-xs text-gray-400 font-medium">
-                        {monthActiveDays} يوم نشط
+                        {t('activeDaysLabel', lang).replace('{count}', String(monthActiveDays))}
                       </span>
                     </div>
 
@@ -566,7 +584,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
                           <div
                             key={dIndex}
                             className={`aspect-square rounded-sm ${dotBg} transition-colors`}
-                            title={`اليوم ${dIndex + 1}: ${count} عادات`}
+                            title={lang === 'ar' ? `اليوم ${dIndex + 1}: ${count} عادات` : `Day ${dIndex + 1}: ${count} habits`}
                           />
                         );
                       })}
@@ -575,12 +593,12 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({
 
                   <div className="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-slate-800 text-xs">
                     <span className="text-gray-500 dark:text-gray-400">
-                      إجمالي: <strong className="text-gray-900 dark:text-white font-bold">{monthCompletedHabits}</strong> عادة
+                      {t('totalCompletedHabitsLabel', lang).replace('{count}', String(monthCompletedHabits))}
                     </span>
 
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold group-hover:translate-x-[-3px] transition-transform flex items-center gap-1">
-                      <span>عرض وتعديل</span>
-                      <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                      <span>{t('viewAndEdit', lang)}</span>
+                      <ArrowRight className={`w-3.5 h-3.5 ${lang === 'ar' ? 'rotate-180' : ''}`} />
                     </span>
                   </div>
                 </div>

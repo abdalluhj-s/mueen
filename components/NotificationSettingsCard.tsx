@@ -565,6 +565,96 @@ export const NotificationSettingsCard: React.FC = () => {
             </div>
           </div>
 
+          {/* سنن ومهام يوم الجمعة (سورة الكهف والمهام) */}
+          <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 flex flex-col justify-between gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationFridayTasksTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationFridayTasksDesc', lang)}
+                  </p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.fridayTasks}
+                onChange={(e) => updateSetting('fridayTasks', e.target.checked)}
+                className="w-4 h-4 accent-emerald-600 rounded cursor-pointer mt-1"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+              <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <Clock className="w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="time"
+                  value={config.fridayTasksTime}
+                  onChange={(e) => updateSetting('fridayTasksTime', e.target.value)}
+                  className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-0.5 text-xs font-mono"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTestNotification('fridayTasks')}
+                className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                <Send className="w-3 h-3" />
+                <span>{testSentType === 'fridayTasks' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* تنبيه موعد الصيام المسنون */}
+          <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 flex flex-col justify-between gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <Moon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationFastingAlertTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationFastingAlertDesc', lang)}
+                  </p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.fastingAlert}
+                onChange={(e) => updateSetting('fastingAlert', e.target.checked)}
+                className="w-4 h-4 accent-emerald-600 rounded cursor-pointer mt-1"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+              <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <Clock className="w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="time"
+                  value={config.fastingTime}
+                  onChange={(e) => updateSetting('fastingTime', e.target.value)}
+                  className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-0.5 text-xs font-mono"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTestNotification('fastingDay')}
+                className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                <Send className="w-3 h-3" />
+                <span>{testSentType === 'fastingDay' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
+              </button>
+            </div>
+          </div>
+
           {/* 7. ختام اليوم */}
           <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 flex flex-col justify-between gap-3 md:col-span-2">
             <div className="flex items-start justify-between gap-2">

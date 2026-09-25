@@ -1,41 +1,48 @@
-import React from 'react';
-import { createClient } from '../../lib/supabase/server';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { createClient } from '../../lib/supabase/client';
 import { Header } from '../../components/Header';
 import { CalendarManager } from '../../components/CalendarManager';
 import { fetchMonthLogs, getUserRealStreak } from '../actions/habits';
 import { Calendar, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../../lib/translations';
 
-export const metadata = {
-  title: 'مُعين | السجل الشهري والسنوي',
-  description: 'متابعة سجل الإنجاز الشهري والسنوي واستدراك وتعديل عادات الأيام السابقة',
-};
+export default function ProgressPage() {
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+  const [user, setUser] = useState<any>(null);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [initialLogs, setInitialLogs] = useState<Record<string, string[]>>({});
 
-export default async function ProgressPage() {
-  const supabase = await createClient();
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1; // 1-indexed
-
-  let initialLogs: Record<string, string[]> = {};
-  let currentStreak = 0;
-
-  if (user) {
-    try {
-      initialLogs = await fetchMonthLogs(currentYear, currentMonth);
-      currentStreak = await getUserRealStreak();
-    } catch (e) {
-      console.warn('تعذر تحميل السجلات الأولية:', e);
-    }
-  }
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+        try {
+          const logs = await fetchMonthLogs(currentYear, currentMonth);
+          const streak = await getUserRealStreak();
+          setInitialLogs(logs);
+          setCurrentStreak(streak);
+        } catch (e) {
+          console.warn('Error fetching progress initial logs:', e);
+        }
+      }
+    }).catch(() => {});
+  }, []);
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200 pb-28 sm:pb-12">
+    <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200 pb-28 sm:pb-12">
       <Header userStreak={currentStreak} />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
@@ -47,10 +54,10 @@ export default async function ProgressPage() {
               <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                 <Calendar className="w-5 h-5" />
               </div>
-              <span>التقويم وسجل الإنجاز</span>
+              <span>{t('progressTitle', lang)}</span>
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1.5 text-xs sm:text-sm">
-              استعرض تقدمك الشهري والسنوي، واضغط على أي يوم لاستدراك ما فاتك من صلوات وأذكار وأوراد 🌿
+              {t('progressSubtitle', lang)}
             </p>
           </div>
 
@@ -58,7 +65,7 @@ export default async function ProgressPage() {
             href="/"
             className="self-start sm:self-auto px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-2xs"
           >
-            العودة للرئيسية
+            {t('backToHome', lang)}
           </Link>
         </div>
 
@@ -70,14 +77,14 @@ export default async function ProgressPage() {
                 <Sparkles className="w-4 h-4" />
               </div>
               <p className="leading-relaxed">
-                أنت تتصفح السجل كـ <strong>ضيف</strong> (يتم حفظ استدراكك محلياً على هذا الجهاز). سجّل دخولك لحفظ إنجازاتك سحابياً ومزامنتها مع رفيقك!
+                {t('guestProgressNotice', lang)}
               </p>
             </div>
             <Link
               href="/login"
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-colors shrink-0 text-center shadow-xs"
             >
-              تسجيل الدخول
+              {t('signIn', lang)}
             </Link>
           </div>
         )}

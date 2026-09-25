@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle2, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 interface DailyProgressCardProps {
@@ -71,6 +72,15 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
           <p className="text-xs sm:text-sm text-emerald-100/90 mt-1 font-normal">
             {getMotivationalMessage(percentage)}
           </p>
+          <div className="mt-2.5">
+            <Link
+              href="/progress"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white text-xs font-bold border border-white/20 transition-all backdrop-blur-sm shadow-xs"
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-300" />
+              <span>{t('progressCardBtn', lang)}</span>
+            </Link>
+          </div>
         </div>
 
         {/* مؤشر النسبة الدائري أو الرقمي للسرعة */}

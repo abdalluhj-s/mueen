@@ -7,10 +7,12 @@ import {
   BookOpen, Heart, Clock
 } from 'lucide-react';
 import { toggleHabitCompletion, batchToggleDayHabits } from '../app/actions/habits';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 export interface HabitDefinition {
   id: string;
   title: string;
+  titleEn: string;
   category: string;
   icon: string;
   group: 'prayers' | 'sunan' | 'quran' | 'adhkar' | 'fasting';
@@ -18,28 +20,28 @@ export interface HabitDefinition {
 
 export const ALL_HABITS: HabitDefinition[] = [
   // الصلوات المفروضة
-  { id: 'h1', title: 'صلاة الفجر في وقتها مع الجماعة', category: 'صلاة', icon: '🌅', group: 'prayers' },
-  { id: 'h2', title: 'صلاة الظهر في وقتها مع الجماعة', category: 'صلاة', icon: '☀️', group: 'prayers' },
-  { id: 'h3', title: 'صلاة العصر في وقتها مع الجماعة', category: 'صلاة', icon: '🌤️', group: 'prayers' },
-  { id: 'h4', title: 'صلاة المغرب في وقتها مع الجماعة', category: 'صلاة', icon: '🌇', group: 'prayers' },
-  { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', category: 'صلاة', icon: '🌙', group: 'prayers' },
+  { id: 'h1', title: 'صلاة الفجر في وقتها مع الجماعة', titleEn: 'Fajr prayer on time in congregation', category: 'صلاة', icon: '🌅', group: 'prayers' },
+  { id: 'h2', title: 'صلاة الظهر في وقتها مع الجماعة', titleEn: 'Dhuhr prayer on time in congregation', category: 'صلاة', icon: '☀️', group: 'prayers' },
+  { id: 'h3', title: 'صلاة العصر في وقتها مع الجماعة', titleEn: 'Asr prayer on time in congregation', category: 'صلاة', icon: '🌤️', group: 'prayers' },
+  { id: 'h4', title: 'صلاة المغرب في وقتها مع الجماعة', titleEn: 'Maghrib prayer on time in congregation', category: 'صلاة', icon: '🌇', group: 'prayers' },
+  { id: 'h5', title: 'صلاة العشاء في وقتها مع الجماعة', titleEn: 'Isha prayer on time in congregation', category: 'صلاة', icon: '🌙', group: 'prayers' },
   // السنن والنوافل
-  { id: 'h1_sunnah', title: 'سنة الفجر الراتبة (ركعتان قبلهما)', category: 'سنة', icon: '✨', group: 'sunan' },
-  { id: 'h2_sunnah_before', title: 'سنة الظهر القبلية (4 ركعات قبل الفريضة)', category: 'سنة', icon: '🕌', group: 'sunan' },
-  { id: 'h2_sunnah_after', title: 'سنة الظهر البعدية (ركعتان بعد الفريضة)', category: 'سنة', icon: '🕌', group: 'sunan' },
-  { id: 'h4_sunnah', title: 'سنة المغرب البعدية (ركعتان بعدها)', category: 'سنة', icon: '✨', group: 'sunan' },
-  { id: 'h5_sunnah', title: 'سنة العشاء البعدية (ركعتان بعدها)', category: 'سنة', icon: '🕌', group: 'sunan' },
-  { id: 'h6', title: 'السنن الرواتب العامة', category: 'سنة', icon: '🕌', group: 'sunan' },
-  { id: 'h7', title: 'صلاة الوتر وركعتي قيام الليل', category: 'صلاة', icon: '✨', group: 'sunan' },
+  { id: 'h1_sunnah', title: 'سنة الفجر الراتبة (ركعتان قبلهما)', titleEn: 'Sunnah Fajr (2 Rak\'ahs before)', category: 'سنة', icon: '✨', group: 'sunan' },
+  { id: 'h2_sunnah_before', title: 'سنة الظهر القبلية (4 ركعات قبل الفريضة)', titleEn: 'Sunnah Dhuhr (4 Rak\'ahs before)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h2_sunnah_after', title: 'سنة الظهر البعدية (ركعتان بعد الفريضة)', titleEn: 'Sunnah Dhuhr (2 Rak\'ahs after)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h4_sunnah', title: 'سنة المغرب البعدية (ركعتان بعدها)', titleEn: 'Sunnah Maghrib (2 Rak\'ahs after)', category: 'سنة', icon: '✨', group: 'sunan' },
+  { id: 'h5_sunnah', title: 'سنة العشاء البعدية (ركعتان بعدها)', titleEn: 'Sunnah Isha (2 Rak\'ahs after)', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h6', title: 'السنن الرواتب العامة', titleEn: 'General Sunan Rawatib', category: 'سنة', icon: '🕌', group: 'sunan' },
+  { id: 'h7', title: 'صلاة الوتر وركعتي قيام الليل', titleEn: 'Witr & Tahajjud night prayer', category: 'صلاة', icon: '✨', group: 'sunan' },
   // ورد القرآن
-  { id: 'h8', title: 'ورد القرآن اليومي (جزء أو نصف حزب أو صفحة)', category: 'قرآن', icon: '📖', group: 'quran' },
+  { id: 'h8', title: 'ورد القرآن اليومي (جزء أو نصف حزب أو صفحة)', titleEn: 'Daily Quran portion (Juz or page)', category: 'قرآن', icon: '📖', group: 'quran' },
   // الأذكار
-  { id: 'h9', title: 'أذكار الصباح والتسبيح', category: 'أذكار', icon: '📿', group: 'adhkar' },
-  { id: 'h10', title: 'أذكار المساء وحصن المسلم', category: 'أذكار', icon: '🌿', group: 'adhkar' },
-  { id: 'h11', title: 'أذكار النوم وسورة الملك', category: 'أذكار', icon: '🤲', group: 'adhkar' },
+  { id: 'h9', title: 'أذكار الصباح والتسبيح', titleEn: 'Morning Adhkar & Tasbih', category: 'أذكار', icon: '📿', group: 'adhkar' },
+  { id: 'h10', title: 'أذكار المساء وحصن المسلم', titleEn: 'Evening Adhkar & Muslim Fortress', category: 'أذكار', icon: '🌿', group: 'adhkar' },
+  { id: 'h11', title: 'أذكار النوم وسورة الملك', titleEn: 'Sleep Adhkar & Surah Al-Mulk', category: 'أذكار', icon: '🤲', group: 'adhkar' },
   // صيام التطوع
-  { id: 'h_fast_mon_thu', title: 'صيام الإثنين والخميس', category: 'صيام', icon: '🌙', group: 'fasting' },
-  { id: 'h_fast_white_days', title: 'صيام الأيام البيض (13 و 14 و 15)', category: 'صيام', icon: '🌕', group: 'fasting' },
+  { id: 'h_fast_mon_thu', title: 'صيام الإثنين والخميس', titleEn: 'Fasting Mondays & Thursdays', category: 'صيام', icon: '🌙', group: 'fasting' },
+  { id: 'h_fast_white_days', title: 'صيام الأيام البيض (13 و 14 و 15)', titleEn: 'Fasting White Days (13, 14, 15)', category: 'صيام', icon: '🌕', group: 'fasting' },
 ];
 
 interface DayHabitModalProps {
@@ -62,6 +64,13 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
   const [completedIds, setCompletedIds] = useState<string[]>(initialCompletedHabits);
   const [isPending, startTransition] = useTransition();
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
 
   // تحديث القائمة عند فتح النافذة أو تغيير التاريخ
   useEffect(() => {
@@ -91,8 +100,8 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
   const [yearNum, monthNum, dayNum] = dateString.split('-').map(Number);
   const dateObj = new Date(yearNum, monthNum - 1, dayNum);
 
-  const dayName = new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(dateObj);
-  const gregorianDate = new Intl.DateTimeFormat('ar-EG', {
+  const dayName = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long' }).format(dateObj);
+  const gregorianDate = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-US', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -102,7 +111,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
   try {
     const adj = typeof window !== 'undefined' ? (parseInt(localStorage.getItem('mueen_hijri_adjustment') || '0', 10) || 0) : 0;
     const adjustedDateObj = new Date(dateObj.getTime() + adj * 86400000);
-    hijriDate = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
+    hijriDate = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-SA-u-ca-islamic-umalqura' : 'en-TN-u-ca-islamic-umalqura', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -221,7 +230,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
 
   // تفريغ اليوم
   const handleClearDay = () => {
-    if (!confirm('هل تريد إلغاء تحديد جميع عادات هذا اليوم؟')) return;
+    if (!confirm(t('dayModalConfirmClear', lang))) return;
     persistChanges([]);
 
     if (isLoggedIn) {
@@ -248,10 +257,46 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
   const adhkarHabits = ALL_HABITS.filter((h) => h.group === 'adhkar');
   const fastingHabits = ALL_HABITS.filter((h) => h.group === 'fasting');
 
+  const renderHabitItem = (habit: HabitDefinition) => {
+    const isChecked = completedIds.includes(habit.id);
+    const displayTitle = lang === 'en' ? habit.titleEn : habit.title;
+
+    return (
+      <div
+        key={habit.id}
+        onClick={() => handleToggleSingle(habit)}
+        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+          isChecked
+            ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100 shadow-2xs'
+            : 'bg-white dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-700 dark:text-gray-200'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xl shrink-0">{habit.icon}</span>
+          <div>
+            <p className={`text-sm font-semibold ${isChecked ? 'line-through opacity-85 text-emerald-900 dark:text-emerald-200' : ''}`}>
+              {displayTitle}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
+            isChecked
+              ? 'bg-emerald-600 text-white'
+              : 'border-2 border-gray-300 dark:border-slate-600'
+          }`}
+        >
+          {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        dir="rtl"
+        dir={lang === 'ar' ? 'rtl' : 'ltr'}
         className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-all duration-200"
       >
         {/* رأس النافذة */}
@@ -259,11 +304,11 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                {isToday ? 'اليوم الحالي 🌟' : isPast ? 'استدراك يوم سابق ⏳' : 'يوم قادم 📅'}
+                {isToday ? t('dayModalCurrentToday', lang) : isPast ? t('dayModalPastDay', lang) : t('dayModalFutureDay', lang)}
               </span>
               {saveSuccessNotice && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500 text-white animate-pulse">
-                  تم الحفظ تلقائياً ✨
+                  {t('dayModalAutoSaved', lang)}
                 </span>
               )}
             </div>
@@ -273,7 +318,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
             </h2>
             {hijriDate && (
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                الموافق: {hijriDate}
+                {lang === 'ar' ? `الموافق: ${hijriDate}` : `Hijri: ${hijriDate}`}
               </p>
             )}
           </div>
@@ -282,7 +327,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
             type="button"
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-            aria-label="إغلاق النافذة"
+            aria-label={t('close', lang)}
           >
             <X className="w-5 h-5" />
           </button>
@@ -292,7 +337,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
         <div className="px-4 sm:px-6 pt-4 pb-3 bg-gray-50/60 dark:bg-slate-900/60 border-b border-gray-100 dark:border-slate-800/80">
           <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
             <span className="font-semibold text-gray-700 dark:text-gray-300">
-              إنجاز اليوم: <strong className="text-emerald-600 dark:text-emerald-400">{completedCount}</strong> من {totalCount} عادة
+              {t('dayModalProgressLabel', lang).replace('{completed}', String(completedCount)).replace('{total}', String(totalCount))}
             </span>
             <span className="font-bold text-emerald-600 dark:text-emerald-400">
               {percentage}%
@@ -320,7 +365,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
               onClick={handleCompleteAllPrayers}
               className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:border-emerald-500 hover:text-emerald-600 transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
-              <span>🕌 إتمام الصلوات الـ 5</span>
+              <span>{t('dayModalComplete5Prayers', lang)}</span>
             </button>
 
             <button
@@ -329,18 +374,18 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
               className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>إتمام كل العادات</span>
+              <span>{t('dayModalCompleteAll', lang)}</span>
             </button>
 
             {completedCount > 0 && (
               <button
                 type="button"
                 onClick={handleClearDay}
-                className="text-xs px-2.5 py-1.5 rounded-xl text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors mr-auto cursor-pointer"
-                title="تفريغ اليوم"
+                className={`text-xs px-2.5 py-1.5 rounded-xl text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer ${lang === 'ar' ? 'mr-auto' : 'ml-auto'}`}
+                title={t('dayModalClear', lang)}
               >
-                <RotateCcw className="w-3.5 h-3.5 inline ml-1" />
-                تفريغ
+                <RotateCcw className={`w-3.5 h-3.5 inline ${lang === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                {t('dayModalClear', lang)}
               </button>
             )}
           </div>
@@ -351,210 +396,50 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
           {/* قسم الصلوات المفروضة */}
           <div>
             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>🕌 الصلوات المفروضة الخمس</span>
+              <span>{t('dayModalSectionPrayers', lang)}</span>
             </h3>
             <div className="space-y-2">
-              {prayerHabits.map((habit) => {
-                const isChecked = completedIds.includes(habit.id);
-                return (
-                  <div
-                    key={habit.id}
-                    onClick={() => handleToggleSingle(habit)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isChecked
-                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl shrink-0">{habit.icon}</span>
-                      <div>
-                        <p className={`text-sm font-semibold ${isChecked ? 'line-through opacity-85 text-emerald-900 dark:text-emerald-200' : ''}`}>
-                          {habit.title}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                        isChecked
-                          ? 'bg-emerald-600 text-white'
-                          : 'border-2 border-gray-300 dark:border-slate-600'
-                      }`}
-                    >
-                      {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
-                    </div>
-                  </div>
-                );
-              })}
+              {prayerHabits.map(renderHabitItem)}
             </div>
           </div>
 
           {/* قسم السنن والنوافل */}
           <div>
             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>✨ السنن والنوافل</span>
+              <span>{t('dayModalSectionSunan', lang)}</span>
             </h3>
             <div className="space-y-2">
-              {sunanHabits.map((habit) => {
-                const isChecked = completedIds.includes(habit.id);
-                return (
-                  <div
-                    key={habit.id}
-                    onClick={() => handleToggleSingle(habit)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isChecked
-                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl shrink-0">{habit.icon}</span>
-                      <div>
-                        <p className={`text-sm font-semibold ${isChecked ? 'line-through opacity-85 text-emerald-900 dark:text-emerald-200' : ''}`}>
-                          {habit.title}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                        isChecked
-                          ? 'bg-emerald-600 text-white'
-                          : 'border-2 border-gray-300 dark:border-slate-600'
-                      }`}
-                    >
-                      {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
-                    </div>
-                  </div>
-                );
-              })}
+              {sunanHabits.map(renderHabitItem)}
             </div>
           </div>
 
           {/* قسم ورد القرآن */}
           <div>
             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>📖 القرآن الكريم</span>
+              <span>{t('dayModalSectionQuran', lang)}</span>
             </h3>
             <div className="space-y-2">
-              {quranHabits.map((habit) => {
-                const isChecked = completedIds.includes(habit.id);
-                return (
-                  <div
-                    key={habit.id}
-                    onClick={() => handleToggleSingle(habit)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isChecked
-                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl shrink-0">{habit.icon}</span>
-                      <div>
-                        <p className={`text-sm font-semibold ${isChecked ? 'line-through opacity-85 text-emerald-900 dark:text-emerald-200' : ''}`}>
-                          {habit.title}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                        isChecked
-                          ? 'bg-emerald-600 text-white'
-                          : 'border-2 border-gray-300 dark:border-slate-600'
-                      }`}
-                    >
-                      {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
-                    </div>
-                  </div>
-                );
-              })}
+              {quranHabits.map(renderHabitItem)}
             </div>
           </div>
 
           {/* قسم الأذكار */}
           <div>
             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>📿 الأذكار وحصن المسلم</span>
+              <span>{t('dayModalSectionAdhkar', lang)}</span>
             </h3>
             <div className="space-y-2">
-              {adhkarHabits.map((habit) => {
-                const isChecked = completedIds.includes(habit.id);
-                return (
-                  <div
-                    key={habit.id}
-                    onClick={() => handleToggleSingle(habit)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isChecked
-                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl shrink-0">{habit.icon}</span>
-                      <div>
-                        <p className={`text-sm font-semibold ${isChecked ? 'line-through opacity-85 text-emerald-900 dark:text-emerald-200' : ''}`}>
-                          {habit.title}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                        isChecked
-                          ? 'bg-emerald-600 text-white'
-                          : 'border-2 border-gray-300 dark:border-slate-600'
-                      }`}
-                    >
-                      {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
-                    </div>
-                  </div>
-                );
-              })}
+              {adhkarHabits.map(renderHabitItem)}
             </div>
           </div>
 
           {/* قسم صيام التطوع */}
           <div>
             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>🌙 صيام التطوع والأيام البيض</span>
+              <span>{t('dayModalSectionFasting', lang)}</span>
             </h3>
             <div className="space-y-2">
-              {fastingHabits.map((habit) => {
-                const isChecked = completedIds.includes(habit.id);
-                return (
-                  <div
-                    key={habit.id}
-                    onClick={() => handleToggleSingle(habit)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isChecked
-                        ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800 text-indigo-950 dark:text-indigo-100 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl shrink-0">{habit.icon}</span>
-                      <div>
-                        <p className={`text-sm font-semibold ${isChecked ? 'line-through opacity-85 text-indigo-900 dark:text-indigo-200' : ''}`}>
-                          {habit.title}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                        isChecked
-                          ? 'bg-indigo-600 text-white'
-                          : 'border-2 border-gray-300 dark:border-slate-600'
-                      }`}
-                    >
-                      {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
-                    </div>
-                  </div>
-                );
-              })}
+              {fastingHabits.map(renderHabitItem)}
             </div>
           </div>
         </div>
@@ -562,7 +447,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
         {/* أسفل النافذة */}
         <div className="p-4 sm:p-5 border-t border-gray-100 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-900/60 flex items-center justify-between gap-3">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {isPast ? '✨ تم تفعيل الحفظ التلقائي للاستدراك' : '✨ يتم الحفظ وتحديث السجل تلقائياً'}
+            {isPast ? t('dayModalFooterPastNote', lang) : t('dayModalFooterTodayNote', lang)}
           </p>
 
           <button
@@ -570,7 +455,7 @@ export const DayHabitModal: React.FC<DayHabitModalProps> = ({
             onClick={onClose}
             className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition-colors shadow-xs cursor-pointer"
           >
-            تم وإغلاق
+            {t('dayModalDoneBtn', lang)}
           </button>
         </div>
       </div>
