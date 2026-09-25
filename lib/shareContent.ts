@@ -1,4 +1,5 @@
 // Mueen (مُعين) Official Share Descriptions and Direct Links (Bilingual: Arabic & English)
+// Dynamic Origin: Automatically adopts current browser origin (window.location.origin) or Netlify default
 
 export interface ShareData {
   title: string;
@@ -7,12 +8,23 @@ export interface ShareData {
   text: string;
 }
 
-export const SHARE_CONTENT: Record<'ar' | 'en', ShareData> = {
-  ar: {
-    title: 'منصة وتطبيق مُعين | رفيق الالتزام بالطاعات',
-    url: 'https://mueen-platform.netlify.app/?lang=ar',
-    shortSummary: 'مُعين — رفيقك اليومي للثبات على الطاعات، الصلوات الخمس وسننها، ورد القرآن، والأذكار بنظام شريك الالتزام.',
-    text: `السلام عليكم ورحمة الله وبركاته 🌿
+export function getShareContent(lang: 'ar' | 'en', baseOrigin?: string): ShareData {
+  let origin = baseOrigin;
+  if (!origin && typeof window !== 'undefined' && window.location.origin) {
+    origin = window.location.origin;
+  }
+  if (!origin) {
+    origin = 'https://mueen-platform.netlify.app';
+  }
+  const cleanOrigin = origin.replace(/\/$/, '');
+  const url = `${cleanOrigin}/?lang=${lang}`;
+
+  if (lang === 'ar') {
+    return {
+      title: 'منصة وتطبيق مُعين | رفيق الالتزام بالطاعات',
+      url,
+      shortSummary: 'مُعين — رفيقك اليومي للثبات على الطاعات، الصلوات الخمس وسننها، ورد القرآن، والأذكار بنظام شريك الالتزام.',
+      text: `السلام عليكم ورحمة الله وبركاته 🌿
 
 أحببت أن أشارككم منصة وتطبيق «مُعين» (Mueen) — رفيقك اليومي للثبات على الطاعات وبناء العادات الإيمانية 🕌
 
@@ -29,13 +41,15 @@ export const SHARE_CONTENT: Record<'ar' | 'en', ShareData> = {
 8️⃣ سجل الإنجاز والتقويم: لمراجعة أيام التزامك واستدراك ما فاتك بكل سهولة.
 
 🌐 رابط الدخول المباشر:
-https://mueen-platform.netlify.app/?lang=ar
+${url}
 
 جربوه وشاركوه مع من تحبون، فالدال على الخير كفاعله 🤍`,
-  },
-  en: {
+    };
+  }
+
+  return {
     title: 'Mueen Platform | Spiritual Habit & Accountability Partner',
-    url: 'https://mueen-platform.netlify.app/?lang=en',
+    url,
     shortSummary: 'Mueen — Your daily spiritual habit & accountability partner for prayers, Quran, adhkar, and fasting.',
     text: `Assalamu Alaikum / Greetings! 🌿
 
@@ -54,8 +68,17 @@ Staying consistent with daily worship can be challenging in a busy world. Mueen 
 8️⃣ Progress Calendar & Make-up Log: View your monthly consistency and easily make up or log any missed portions.
 
 🌐 Direct Access Link (English Interface):
-https://mueen-platform.netlify.app/?lang=en
+${url}
 
 Feel free to check it out, install it on your home screen, and share it with friends! 🤍`,
+  };
+}
+
+export const SHARE_CONTENT: Record<'ar' | 'en', ShareData> = {
+  get ar() {
+    return getShareContent('ar');
+  },
+  get en() {
+    return getShareContent('en');
   },
 };

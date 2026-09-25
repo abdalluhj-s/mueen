@@ -1019,7 +1019,7 @@ export default function SettingsPage() {
                           {currentUser.email}
                         </p>
                         <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
-                          ✓ {lang === 'en' ? 'Your awrad and streaks are synced to Cloudflare & Supabase' : 'بياناتك وأورادك وسجلك الشهري محفوظة سحابياً'}
+                          ✓ {lang === 'en' ? 'Your awrad and streaks are securely synced to the cloud' : 'بياناتك وأورادك وسجلك الشهري محفوظة سحابياً'}
                         </p>
                       </div>
                     </div>

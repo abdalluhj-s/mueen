@@ -56,9 +56,9 @@ export const PartnerInviteModal: React.FC<PartnerInviteModalProps> = ({
       setSuccessMsg(null);
 
       const origin =
-        typeof window !== 'undefined'
+        typeof window !== 'undefined' && window.location.origin
           ? window.location.origin
-          : 'https://mueen.ah4549658.workers.dev';
+          : 'https://mueen-platform.netlify.app';
 
       // مبدئياً نعرض رابط سريع مع الكود المؤقت
       setInviteUrl(`${origin}/join?code=${inviteCode}`);
