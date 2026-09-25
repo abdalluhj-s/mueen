@@ -295,6 +295,24 @@ export const DICTIONARY = {
   dayModalFooterTodayNote: { ar: '✨ يتم الحفظ وتحديث السجل تلقائياً', en: '✨ Habits are saved and synced automatically' },
   dayModalDoneBtn: { ar: 'تم وإغلاق', en: 'Done & Close' },
 
+  // Share Application Hub
+  shareApp: { ar: 'مشاركة المنصة', en: 'Share Mueen' },
+  shareAppTitle: { ar: 'مشاركة منصة وتطبيق مُعين 🌿', en: 'Share Mueen Platform 🌿' },
+  shareAppSubtitle: { ar: 'انشر الخير وكن عوناً لأصحابك على الثبات على الطاعات', en: 'Spread goodness and help friends stay consistent in daily worship' },
+  shareLangTabAr: { ar: '🇸🇦 الوصف العربي', en: '🇸🇦 Arabic Version' },
+  shareLangTabEn: { ar: '🇬🇧 الوصف الإنجليزي', en: '🇬🇧 English Version' },
+  copyFullMessage: { ar: 'نسخ الرسالة كاملة مع الرابط 📋', en: 'Copy Full Text & Link 📋' },
+  copyLinkOnly: { ar: 'نسخ الرابط فقط 🔗', en: 'Copy Link Only 🔗' },
+  nativeShareBtn: { ar: 'مشاركة عبر تطبيقات الهاتف 📲', en: 'Share via Device Apps 📲' },
+  shareWhatsApp: { ar: 'واتساب', en: 'WhatsApp' },
+  shareTelegram: { ar: 'تيليجرام', en: 'Telegram' },
+  shareTwitter: { ar: 'منصة X', en: 'X (Twitter)' },
+  copiedSuccessToast: { ar: 'تم نسخ الرسالة بنجاح، يمكنك لصقها ومشاركتها الآن! ✨', en: 'Message copied successfully! You can paste and share it now ✨' },
+  copiedLinkToast: { ar: 'تم نسخ الرابط بنجاح! 🔗', en: 'Link copied successfully! 🔗' },
+  shareSidebarCardTitle: { ar: 'انشر تُؤجر | شارك مُعين 🌿', en: 'Share Mueen | Spread Good 🌿' },
+  shareSidebarCardSub: { ar: 'شارك التطبيق باللغة العربية أو الإنجليزية مع أصحابك', en: 'Share Mueen in Arabic or English with your friends' },
+
+
 };
 
 export type TranslationKey = keyof typeof DICTIONARY;

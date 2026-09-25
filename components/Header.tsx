@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Languages, Calendar } from 'lucide-react';
+import { Sun, Moon, Languages, Calendar, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { getSavedLanguage, saveLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
+import { ShareAppModal } from './ShareAppModal';
 
 interface HeaderProps {
   userStreak?: number;
@@ -13,6 +14,7 @@ export const Header: React.FC<HeaderProps> = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');
   const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const toggleLanguage = () => {
     const nextLang = lang === 'ar' ? 'en' : 'ar';
@@ -114,6 +116,17 @@ export const Header: React.FC<HeaderProps> = () => {
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-300 hover:text-emerald-500" />
           </Link>
 
+          {/* زر مشاركة المنصة (Share Mueen) */}
+          <button
+            type="button"
+            onClick={() => setIsShareModalOpen(true)}
+            title={t('shareApp', lang)}
+            aria-label={t('shareApp', lang)}
+            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0"
+          >
+            <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-300 hover:text-emerald-500" />
+          </button>
+
           {/* زر تبديل الوضع الليلي (Dark Mode Toggle) */}
           <button
             type="button"
@@ -142,6 +155,13 @@ export const Header: React.FC<HeaderProps> = () => {
           </button>
         </div>
       </div>
+
+      {/* نافذة مشاركة التطبيق المنبثقة */}
+      <ShareAppModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)} 
+        defaultLang={lang} 
+      />
     </header>
   );
 };
