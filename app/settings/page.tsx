@@ -58,13 +58,13 @@ export default function SettingsPage() {
   // لغة التطبيق
   const [lang, setLang] = useState<Language>(() => getSavedLanguage());
 
-  // حالات طي وفتح الأقسام (Collapsible Accordions)
+  // حالات طي وفتح الأقسام (Collapsible Accordions - الأصل في حالة الطي)
   const [openSections, setOpenSections] = useState({
-    language: true,
-    colors: true,
+    language: false,
+    colors: false,
     fontSize: false,
     country: false,
-    notifications: true,
+    notifications: false,
     install: false,
     account: false,
   });

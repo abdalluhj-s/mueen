@@ -24,6 +24,7 @@ import {
   LANGUAGE_CHANGE_EVENT, 
   t 
 } from '../lib/translations';
+import { getIslamicDayStatus } from '../lib/islamicCalendar';
 import Link from 'next/link';
 
 // إصدار العادات الافتراضية — تغييره يؤدي لتحديث القائمة للترتيب الزمني والسنن والصيام
@@ -180,7 +181,19 @@ export default function DashboardPage() {
     }).catch(() => {});
   }, []);
 
-  const completedCount = habits.filter((h) => h.completed).length;
+  // فحص حالة الصيام المسنون لليوم وفق التقويم الهجري
+  const islamicStatus = getIslamicDayStatus(new Date(), getSavedHijriAdjustment(), getSavedCountryId());
+  const isFastingDay = islamicStatus.fastingInfo.isFastingDay;
+
+  // استبعاد عادات الصيام من إجمالي ونسبة اليوم إذا لم يكن اليوم يوم صيام شرعي مسنون
+  const visibleDailyHabits = habits.filter((h) => {
+    if (h.category === 'صيام' || h.timeSlot === 'fasting') {
+      return isFastingDay;
+    }
+    return true;
+  });
+
+  const completedCount = visibleDailyHabits.filter((h) => h.completed).length;
 
   // تبديل حالة العادة مع الحفظ المباشر في LocalStorage و Supabase
   const handleToggleHabit = (id: string) => {
@@ -271,7 +284,7 @@ export default function DashboardPage() {
         {/* شريط الإنجاز اليومي العام والتاريخ الهجري والميلادي */}
         <DailyProgressCard
           completedCount={completedCount}
-          totalCount={habits.length}
+          totalCount={visibleDailyHabits.length}
           hijriDate={dateInfo.hijriDate}
           gregorianDate={dateInfo.gregorianDate}
           countryFlag={dateInfo.country?.flag}
@@ -283,7 +296,7 @@ export default function DashboardPage() {
           {/* العمود الرئيسي: قائمة أوراد وعادات اليوم */}
           <section className="lg:col-span-2 space-y-6">
             <HabitList
-              habits={habits}
+              habits={visibleDailyHabits}
               onToggleHabit={handleToggleHabit}
               onDeleteHabit={handleDeleteHabit}
               onAddHabitClick={() => setIsAddModalOpen(true)}

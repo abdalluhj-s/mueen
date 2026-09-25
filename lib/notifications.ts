@@ -1,4 +1,5 @@
 import { getTodayHadith } from '../data/hadiths';
+import { getIslamicDayStatus } from './islamicCalendar';
 
 export interface NotificationScheduleConfig {
   enabled: boolean;
@@ -315,6 +316,7 @@ export async function sendTestNotification(type:
   | 'fridayHour' 
   | 'dailyReview' 
   | 'dailyHadith'
+  | 'fastingDay'
 ): Promise<{ success: boolean; deliveredToOS: boolean; message: string }> {
   switch (type) {
     case 'morning':
@@ -365,6 +367,19 @@ export async function sendTestNotification(type:
         body: `${hadith.text} — عن ${hadith.narrator} (${hadith.source})`,
         url: '/adhkar',
         tag: 'mueen-daily-hadith',
+      });
+    }
+
+    case 'fastingDay': {
+      const islamicStatus = getIslamicDayStatus();
+      const title = islamicStatus.fastingInfo.titleAr || 'صيام سنة اليوم المبارك';
+      const body = islamicStatus.fastingInfo.descAr 
+        ? `${islamicStatus.fastingInfo.descAr} — ${islamicStatus.fastingInfo.hadithQuoteAr}`
+        : 'اليوم يوم صيام مسنون.. لا تنسَ نية الصيام وتجديد العهد مع الله، تقبل الله طاعتكم.';
+      return sendDeviceNotification(`🌙 ${title} | مُعين`, {
+        body,
+        url: '/',
+        tag: 'mueen-fasting-day',
       });
     }
 
@@ -430,5 +445,12 @@ export function checkAndTriggerScheduledNotifications() {
       sendTestNotification('fridayHour');
       markSentToday('fridayHour');
     }
+  }
+
+  // 7. تذكير صيام اليوم (يوم الصيام فقط في الصباح الباكر عند أذان الفجر)
+  const islamicStatus = getIslamicDayStatus(now);
+  if (islamicStatus.fastingInfo.isFastingDay && currentTimeStr === '05:00' && !hasBeenSentToday('fastingDay')) {
+    sendTestNotification('fastingDay');
+    markSentToday('fastingDay');
   }
 }

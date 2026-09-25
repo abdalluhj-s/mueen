@@ -28,6 +28,7 @@ import { SebhaModal } from './SebhaModal';
 import { EidSunanModal } from './EidSunanModal';
 import { HadithDailyCard } from './HadithDailyCard';
 import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
+import { getIslamicDayStatus } from '../lib/islamicCalendar';
 
 interface HabitListProps {
   habits: HabitItem[];
@@ -61,13 +62,13 @@ export const HabitList: React.FC<HabitListProps> = ({
   const [isEidModalOpen, setIsEidModalOpen] = useState(false);
   const [sebhaInitialIndex, setSebhaInitialIndex] = useState(0);
 
-  // حالة فتح/طي كل صلاة في قائمة الصلوات والسنن (الأكورديون)
+  // حالة فتح/طي كل صلاة في قائمة الصلوات والسنن (الأصل أن الأوراد مطوية بناء على طلب المستخدم)
   const [openPrayers, setOpenPrayers] = useState<Record<string, boolean>>({
-    fajr: true,
-    dhuhr: true,
-    asr: true,
-    maghrib: true,
-    isha: true,
+    fajr: false,
+    dhuhr: false,
+    asr: false,
+    maghrib: false,
+    isha: false,
   });
 
   const togglePrayerAccordion = (prayerId: string) => {
@@ -85,30 +86,29 @@ export const HabitList: React.FC<HabitListProps> = ({
     setOpenPrayers({ fajr: false, dhuhr: false, asr: false, maghrib: false, isha: false });
   };
 
-  // فحص حالة اليوم لصيام الإثنين والخميس والأيام البيض
-  const getFastingInfo = () => {
-    try {
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 1 = Mon, 4 = Thu
-      const isMon = dayOfWeek === 1;
-      const isThu = dayOfWeek === 4;
-      const isFastDayOfWeek = isMon || isThu;
-      const dayName = isMon ? 'الإثنين' : isThu ? 'الخميس' : '';
+  // فحص حالة اليوم الشرعية وفق التقويم الهجري الدقيق (يوم الجمعة، وأيام الصيام المسنونة)
+  const islamicStatus = getIslamicDayStatus();
+  const { isFriday, hijriDay, hijriMonth, dayOfWeek, fastingInfo } = islamicStatus;
+  const isFastingDay = fastingInfo.isFastingDay;
 
-      const hijriStr = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
-        day: 'numeric',
-      }).format(now);
-      const hijriDay = parseInt(hijriStr, 10) || 13;
-      const isWhiteDay = hijriDay >= 13 && hijriDay <= 15;
-
-      return { isFastDayOfWeek, dayName, hijriDay, isWhiteDay };
-    } catch {
-      return { isFastDayOfWeek: false, dayName: '', hijriDay: 13, isWhiteDay: false };
+  // إعادة ضبط التابة إذا كانت محددة على الجمعة أو الصيام واليوم ليس يومهما
+  React.useEffect(() => {
+    if (activeHub === 'friday' && !isFriday) {
+      setActiveHub('prayers');
     }
-  };
+    if (activeHub === 'fasting' && !isFastingDay) {
+      setActiveHub('prayers');
+    }
+  }, [activeHub, isFriday, isFastingDay]);
 
-  const { isFastDayOfWeek, dayName, hijriDay, isWhiteDay } = getFastingInfo();
-  const isFriday = new Date().getDay() === 5;
+  // عدد التابات الظاهرة لتعديل شبكة الأعمدة (Grid) ديناميكياً
+  const visibleHubsCount = 4 + (isFriday ? 1 : 0) + (isFastingDay ? 1 : 0);
+  const hubsGridCols =
+    visibleHubsCount === 4
+      ? 'grid-cols-2 sm:grid-cols-4'
+      : visibleHubsCount === 5
+      ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'
+      : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6';
 
   // إحصائيات الصلوات الخمس وسننها
   const fajrHabits = habits.filter((h) => h.id === 'h1' || h.id === 'h1_sunnah' || h.id === 'h9');
@@ -200,7 +200,7 @@ export const HabitList: React.FC<HabitListProps> = ({
       {/* ======================================================== */}
       {/* 1. الكروت الرئيسية الذكية (The Smart Navigation Hubs)    */}
       {/* ======================================================== */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+      <div className={`grid ${hubsGridCols} gap-2.5 sm:gap-3`}>
         {/* كارت 1: الصلوات والسنن */}
         <button
           type="button"
@@ -329,71 +329,75 @@ export const HabitList: React.FC<HabitListProps> = ({
           </div>
         </button>
 
-        {/* كارت 5: سنن الجمعة */}
-        <button
-          type="button"
-          onClick={() => setActiveHub('friday')}
-          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
-            activeHub === 'friday'
-              ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
-              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div
-              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-                activeHub === 'friday'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
-              }`}
-            >
-              <span className="text-xs">🕌</span>
-            </div>
-            {isFriday && (
+        {/* كارت 5: سنن الجمعة — لا يظهر إلا يوم الجمعة فقط كل أسبوع */}
+        {isFriday && (
+          <button
+            type="button"
+            onClick={() => setActiveHub('friday')}
+            className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+              activeHub === 'friday'
+                ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
+                : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
+                  activeHub === 'friday'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
+                }`}
+              >
+                <span className="text-xs">🕌</span>
+              </div>
               <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-600 text-white animate-pulse">
-                {lang === 'ar' ? 'اليوم' : 'Today'}
+                {lang === 'ar' ? 'اليوم جمعة' : 'Friday Today'}
               </span>
-            )}
-          </div>
-          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            {t('hubFriday', lang)}
-          </div>
-          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {t('hubFridaySub', lang)}
-          </div>
-        </button>
-
-        {/* كارت 6: صيام التطوع */}
-        <button
-          type="button"
-          onClick={() => setActiveHub('fasting')}
-          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
-            activeHub === 'fasting'
-              ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
-              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div
-              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
-                activeHub === 'fasting'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" />
             </div>
-            <span className="text-[10px] font-bold px-1 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-              {isFastDayOfWeek ? dayName : isWhiteDay ? (lang === 'ar' ? 'البيض' : 'White') : (lang === 'ar' ? 'تطوع' : 'Voluntary')}
-            </span>
-          </div>
-          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            {t('hubFasting', lang)}
-          </div>
-          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {completedFastingCount > 0 ? (lang === 'ar' ? 'صائم تقبل الله' : 'Fasting, Accepted') : t('hubFastingSub', lang)}
-          </div>
-        </button>
+            <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+              {t('hubFriday', lang)}
+            </div>
+            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+              {t('hubFridaySub', lang)}
+            </div>
+          </button>
+        )}
+
+        {/* كارت 6: صيام التطوع — لا يظهر إلا في أيام الصيام المسنونة فقط (إثنين، خميس، بيض، عاشوراء، ذو الحجة، شوال، شعبان) */}
+        {isFastingDay && (
+          <button
+            type="button"
+            onClick={() => setActiveHub('fasting')}
+            className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+              activeHub === 'fasting'
+                ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
+                : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
+                  activeHub === 'fasting'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
+                }`}
+              >
+                <Moon className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                {lang === 'ar' ? (fastingInfo.badgeAr || 'سنة') : (fastingInfo.badgeEn || 'Sunnah')}
+              </span>
+            </div>
+            <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+              {t('hubFasting', lang)}
+            </div>
+            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+              {completedFastingCount > 0 
+                ? (lang === 'ar' ? 'صائم تقبل الله' : 'Fasting, Accepted') 
+                : (lang === 'ar' ? fastingInfo.titleAr : fastingInfo.titleEn)}
+            </div>
+          </button>
+        )}
       </div>
 
       {/* ======================================================== */}
@@ -962,16 +966,16 @@ export const HabitList: React.FC<HabitListProps> = ({
               <span className="text-xl sm:text-2xl">🌙</span>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                  {t('fastingVoluntaryTitle', lang)}
+                  {lang === 'ar' ? (fastingInfo.titleAr || t('fastingVoluntaryTitle', lang)) : (fastingInfo.titleEn || t('fastingVoluntaryTitle', lang))}
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {t('fastingVoluntarySub', lang)}
+                  {lang === 'ar' ? (fastingInfo.descAr || t('fastingVoluntarySub', lang)) : (fastingInfo.descEn || t('fastingVoluntarySub', lang))}
                 </p>
               </div>
             </div>
-            {isFastDayOfWeek && (
+            {fastingInfo.badgeAr && (
               <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                {lang === 'ar' ? `اليوم سنة ${dayName} 🌿` : `Today is Sunnah ${dayName} 🌿`}
+                {lang === 'ar' ? fastingInfo.badgeAr : fastingInfo.badgeEn} 🌿
               </span>
             )}
           </div>
@@ -1029,7 +1033,7 @@ export const HabitList: React.FC<HabitListProps> = ({
           </div>
 
           <div dir="rtl" className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed text-center font-serif">
-            «مَنْ صَامَ يَوْمًا فِي سَبِيلِ اللَّهِ بَعَّدَ اللَّهُ وَجْهَهُ عَنِ النَّارِ سَبْعِينَ خَرِيفًا»
+            {lang === 'ar' ? (fastingInfo.hadithQuoteAr || '«مَنْ صَامَ يَوْمًا فِي سَبِيلِ اللَّهِ بَعَّدَ اللَّهُ وَجْهَهُ عَنِ النَّارِ سَبْعِينَ خَرِيفًا»') : (fastingInfo.hadithQuoteEn || '«Whoever fasts a day for the sake of Allah, Allah will distance his face from the fire seventy years»')}
           </div>
         </section>
       )}
