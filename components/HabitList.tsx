@@ -26,6 +26,7 @@ import { HabitItem } from '../types/dashboard';
 import { FridayHubCard } from './FridayHubCard';
 import { SebhaModal } from './SebhaModal';
 import { EidSunanModal } from './EidSunanModal';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 interface HabitListProps {
   habits: HabitItem[];
@@ -42,6 +43,15 @@ export const HabitList: React.FC<HabitListProps> = ({
   onDeleteHabit,
   onAddHabitClick,
 }) => {
+  // لغة التطبيق الحالية
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+
+  React.useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
+
   // التابة الرئيسية النشطة (الافتراضي: الصلوات والسنن)
   const [activeHub, setActiveHub] = useState<MainHub>('prayers');
 
@@ -149,37 +159,37 @@ export const HabitList: React.FC<HabitListProps> = ({
   const prayerSections = [
     {
       id: 'fajr',
-      name: 'صلاة الفجر',
+      name: t('fajr', lang),
       icon: '🌅',
-      timeHint: 'عند أذان الفجر في المسجد',
+      timeHint: t('fajrTimeHint', lang),
       items: fajrHabits,
     },
     {
       id: 'dhuhr',
-      name: 'صلاة الظهر',
+      name: t('dhuhr', lang),
       icon: '☀️',
-      timeHint: 'عند أذان الظهر في المسجد',
+      timeHint: t('dhuhrTimeHint', lang),
       items: dhuhrHabits,
     },
     {
       id: 'asr',
-      name: 'صلاة العصر',
+      name: t('asr', lang),
       icon: '🌤️',
-      timeHint: 'عند أذان العصر في المسجد',
+      timeHint: t('asrTimeHint', lang),
       items: asrHabits,
     },
     {
       id: 'maghrib',
-      name: 'صلاة المغرب',
+      name: t('maghrib', lang),
       icon: '🌇',
-      timeHint: 'عند أذان المغرب في المسجد',
+      timeHint: t('maghribTimeHint', lang),
       items: maghribHabits,
     },
     {
       id: 'isha',
-      name: 'صلاة العشاء والليل',
+      name: t('isha', lang),
       icon: '🌙',
-      timeHint: 'عند أذان العشاء في المسجد',
+      timeHint: t('ishaTimeHint', lang),
       items: ishaHabits,
     },
   ];
@@ -194,7 +204,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         <button
           type="button"
           onClick={() => setActiveHub('prayers')}
-          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'prayers'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
               : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
@@ -215,10 +225,10 @@ export const HabitList: React.FC<HabitListProps> = ({
             </span>
           </div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            الصلوات والسنن
+            {t('hubPrayers', lang)}
           </div>
           <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            الفرائض والرواتب
+            {t('hubPrayersSub', lang)}
           </div>
         </button>
 
@@ -226,7 +236,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         <button
           type="button"
           onClick={() => setActiveHub('awrad')}
-          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'awrad'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
               : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
@@ -247,10 +257,10 @@ export const HabitList: React.FC<HabitListProps> = ({
             </span>
           </div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            أورادي اليومية
+            {t('hubAwrad', lang)}
           </div>
           <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            الصلة والبر والعلم
+            {t('hubAwradSub', lang)}
           </div>
         </button>
 
@@ -258,7 +268,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         <button
           type="button"
           onClick={() => setActiveHub('quran')}
-          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'quran'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
               : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
@@ -279,10 +289,10 @@ export const HabitList: React.FC<HabitListProps> = ({
             </span>
           </div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            الورد والقرآن
+            {t('hubQuran', lang)}
           </div>
           <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {isQuranCompleted ? 'تم إنجاز الورد ✓' : 'المصحف الشريف'}
+            {isQuranCompleted ? (lang === 'ar' ? 'تم إنجاز الورد ✓' : 'Portion Done ✓') : t('hubQuranSub', lang)}
           </div>
         </button>
 
@@ -290,7 +300,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         <button
           type="button"
           onClick={() => setActiveHub('adhkar')}
-          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'adhkar'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
               : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
@@ -311,10 +321,10 @@ export const HabitList: React.FC<HabitListProps> = ({
             </span>
           </div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            الأذكار والسبحة
+            {t('hubAdhkar', lang)}
           </div>
           <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            الصباح والمساء
+            {t('hubAdhkarSub', lang)}
           </div>
         </button>
 
@@ -322,7 +332,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         <button
           type="button"
           onClick={() => setActiveHub('friday')}
-          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'friday'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
               : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
@@ -340,15 +350,15 @@ export const HabitList: React.FC<HabitListProps> = ({
             </div>
             {isFriday && (
               <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-600 text-white animate-pulse">
-                اليوم
+                {lang === 'ar' ? 'اليوم' : 'Today'}
               </span>
             )}
           </div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            سنن الجمعة
+            {t('hubFriday', lang)}
           </div>
           <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            الكهف وساعة الإجابة
+            {t('hubFridaySub', lang)}
           </div>
         </button>
 
@@ -356,7 +366,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         <button
           type="button"
           onClick={() => setActiveHub('fasting')}
-          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'fasting'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
               : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
@@ -373,14 +383,14 @@ export const HabitList: React.FC<HabitListProps> = ({
               <Moon className="w-3.5 h-3.5" />
             </div>
             <span className="text-[10px] font-bold px-1 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-              {isFastDayOfWeek ? dayName : isWhiteDay ? 'البيض' : 'تطوع'}
+              {isFastDayOfWeek ? dayName : isWhiteDay ? (lang === 'ar' ? 'البيض' : 'White') : (lang === 'ar' ? 'تطوع' : 'Voluntary')}
             </span>
           </div>
           <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
-            صيام التطوع
+            {t('hubFasting', lang)}
           </div>
           <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {completedFastingCount > 0 ? 'صائم تقبل الله' : 'الإثنين والخميس'}
+            {completedFastingCount > 0 ? (lang === 'ar' ? 'صائم تقبل الله' : 'Fasting, Accepted') : t('hubFastingSub', lang)}
           </div>
         </button>
       </div>
@@ -396,7 +406,7 @@ export const HabitList: React.FC<HabitListProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-base sm:text-lg">🕌</span>
               <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                الصلوات الخمس والسنن الرواتب
+                {t('fivePrayersHeading', lang)}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -405,7 +415,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                 onClick={expandAllPrayers}
                 className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
               >
-                فتح الكل
+                {t('openAll', lang)}
               </button>
               <span className="text-gray-300 dark:text-gray-700">•</span>
               <button
@@ -413,7 +423,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                 onClick={collapseAllPrayers}
                 className="text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer"
               >
-                طي الكل
+                {t('collapseAll', lang)}
               </button>
             </div>
           </div>
@@ -439,7 +449,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                   <button
                     type="button"
                     onClick={() => togglePrayerAccordion(prayer.id)}
-                    className="w-full p-3.5 sm:p-4 flex items-center justify-between text-right cursor-pointer select-none hover:bg-gray-100/60 dark:hover:bg-slate-800/60 transition-colors"
+                    className={`w-full p-3.5 sm:p-4 flex items-center justify-between ${lang === 'ar' ? 'text-right' : 'text-left'} cursor-pointer select-none hover:bg-gray-100/60 dark:hover:bg-slate-800/60 transition-colors`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xl sm:text-2xl">{prayer.icon}</span>
@@ -448,7 +458,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                           <span>{prayer.name}</span>
                           {isAllDone && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
-                              مكتملة ✓
+                              {t('completedBadge', lang)}
                             </span>
                           )}
                         </h3>
@@ -528,12 +538,12 @@ export const HabitList: React.FC<HabitListProps> = ({
 
                                   {isSunnah && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60">
-                                      سنة
+                                      {t('sunnahBadge', lang)}
                                     </span>
                                   )}
                                   {isAdhkar && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">
-                                      أذكار
+                                      {t('adhkarBadge', lang)}
                                     </span>
                                   )}
                                 </div>
@@ -541,11 +551,11 @@ export const HabitList: React.FC<HabitListProps> = ({
                                 {/* إظهار المواقيت الدقيقة للأذكار بناء على طلب المستخدم */}
                                 {item.id === 'h9' ? (
                                   <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5 font-bold flex items-center gap-1">
-                                    <span>🌅 الوقت الأفضل: بعد الفجر وقبل شروق الشمس بنصف ساعة</span>
+                                    <span>{t('morningAdhkarTimeText', lang)}</span>
                                   </p>
                                 ) : item.id === 'h10' ? (
                                   <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5 font-bold flex items-center gap-1">
-                                    <span>🌇 الوقت الأفضل: بعد العصر وقبل غروب الشمس (المغرب) بنصف ساعة</span>
+                                    <span>{t('eveningAdhkarTimeText', lang)}</span>
                                   </p>
                                 ) : item.timeHint ? (
                                   <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
@@ -562,7 +572,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                                 onClick={(e) => e.stopPropagation()}
                                 className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/70 hover:bg-amber-100 text-amber-800 dark:text-amber-200 text-[11px] font-bold transition-colors flex items-center gap-1 shrink-0"
                               >
-                                <span>قراءة الأذكار</span>
+                                <span>{t('readAdhkar', lang)}</span>
                                 <ExternalLink className="w-3 h-3" />
                               </Link>
                             )}
@@ -573,7 +583,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                                 onClick={(e) => e.stopPropagation()}
                                 className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/70 hover:bg-amber-100 text-amber-800 dark:text-amber-200 text-[11px] font-bold transition-colors flex items-center gap-1 shrink-0"
                               >
-                                <span>قراءة الأذكار</span>
+                                <span>{t('readAdhkar', lang)}</span>
                                 <ExternalLink className="w-3 h-3" />
                               </Link>
                             )}
@@ -599,10 +609,10 @@ export const HabitList: React.FC<HabitListProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                  أورادي اليومية وأعمال البر والعلم
+                  {t('dailyAwradHeading', lang)}
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  صلة الرحم، بر الوالدين، زيارة المريض، طلب العلم، إتقان العمل، وقراءة الكتب
+                  {t('dailyAwradSub', lang)}
                 </p>
               </div>
             </div>
@@ -615,7 +625,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                   className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>إضافة ورد جديد 📚</span>
+                  <span>{t('addNewWerdBtn', lang)}</span>
                 </button>
               )}
             </div>
@@ -625,13 +635,13 @@ export const HabitList: React.FC<HabitListProps> = ({
           {awradHabits.length === 0 ? (
             <div className="py-12 text-center space-y-3 bg-gray-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-slate-700">
               <span className="text-3xl">🌿</span>
-              <p className="text-xs text-gray-500 font-semibold">لم تقم بإضافة أي أوراد يومية مخصصة بعد</p>
+              <p className="text-xs text-gray-500 font-semibold">{t('noAwradYet', lang)}</p>
               <button
                 type="button"
                 onClick={onAddHabitClick}
-                className="px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors"
+                className="px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
               >
-                تصفح مكتبة الأوراد المقترحة واختر ما يناسبك
+                {t('browseSuggested', lang)}
               </button>
             </div>
           ) : (
@@ -698,7 +708,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                         onDeleteHabit(item.id);
                       }}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                      title="إزالة هذا الورد من جدولك اليومي"
+                      title={t('removeWerdTooltip', lang)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -718,16 +728,16 @@ export const HabitList: React.FC<HabitListProps> = ({
               <span className="text-xl sm:text-2xl">📖</span>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                  ورد القرآن الكريم اليومي
+                  {t('quranDailyHeading', lang)}
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  تلاوة وتدبر مع المصحف العادي النظيف أو المصحف ثلاثي الأبعاد
+                  {t('quranDailySub', lang)}
                 </p>
               </div>
             </div>
             {isQuranCompleted && (
               <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                تم إنجاز الورد ✓
+                {t('quranDoneBadge', lang)}
               </span>
             )}
           </div>
@@ -771,13 +781,13 @@ export const HabitList: React.FC<HabitListProps> = ({
                     {quranHabit.title}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    تلاوة جزء، نصف حزب، أو صفحة مع التدبر
+                    {lang === 'ar' ? 'تلاوة جزء، نصف حزب، أو صفحة مع التدبر' : 'Reciting a portion, hizb, or page with reflection'}
                   </p>
                 </div>
               </div>
 
               <span className="text-xs text-emerald-700 dark:text-emerald-400 font-bold shrink-0">
-                {quranHabit.completed ? 'مكتمل' : 'اضغط للتحديد'}
+                {quranHabit.completed ? t('completed', lang) : t('clickToMark', lang)}
               </span>
             </div>
           )}
@@ -785,11 +795,11 @@ export const HabitList: React.FC<HabitListProps> = ({
           {/* بطاقة الدعوة لفتح المصحف */}
           <div className="bg-gradient-to-br from-emerald-800 to-teal-900 text-white p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
             <div>
-              <div className="font-quran text-base sm:text-lg text-emerald-100">
+              <div dir="rtl" className="font-quran text-base sm:text-lg text-emerald-100">
                 «اقْرَؤُوا القُرْآنَ فإنَّه يَأْتي يَومَ القِيامَةِ شَفِيعًا لأَصْحابِهِ»
               </div>
               <p className="text-xs text-emerald-200/90 mt-1">
-                تصفح آيات القرآن الكريم بسهولة في المصحف العادي النظيف مع حفظ مكان وقوفك الأخير
+                {t('quranHadithDesc', lang)}
               </p>
             </div>
             <Link
@@ -797,7 +807,7 @@ export const HabitList: React.FC<HabitListProps> = ({
               className="px-5 py-2.5 rounded-xl bg-white text-emerald-950 font-bold text-xs sm:text-sm shadow-md hover:bg-emerald-50 transition-all flex items-center gap-2 shrink-0 self-start sm:self-center"
             >
               <BookOpen className="w-4 h-4" />
-              <span>فتح المصحف الشريف للقراءة</span>
+              <span>{t('openMushaf', lang)}</span>
             </Link>
           </div>
         </section>
@@ -811,10 +821,10 @@ export const HabitList: React.FC<HabitListProps> = ({
               <span className="text-xl sm:text-2xl">☀️</span>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                  الأذكار اليومية وحصن المسلم
+                  {t('adhkarDailyHeading', lang)}
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  ألا بذكر الله تطمئن القلوب وتُحفظ النفس من كل مكروه
+                  {t('adhkarDailySub', lang)}
                 </p>
               </div>
             </div>
@@ -829,7 +839,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                 }}
                 className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/80 text-xs font-bold hover:bg-amber-100 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
-                <span>📿 فتح السبحة</span>
+                <span>{t('openSebha', lang)}</span>
               </button>
 
               <button
@@ -838,7 +848,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                 className="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer"
                 title="سنن وآداب الأعياد"
               >
-                <span>🎉 الأعياد</span>
+                <span>{t('eidSunan', lang)}</span>
               </button>
             </div>
           </div>
@@ -848,16 +858,16 @@ export const HabitList: React.FC<HabitListProps> = ({
             <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/50 flex items-center gap-2.5">
               <span className="text-lg">🌅</span>
               <div>
-                <span className="font-bold text-amber-900 dark:text-amber-200 block">أذكار الصباح:</span>
-                <span className="text-[11px] text-amber-800 dark:text-amber-300">يُستحب قراءتها بعد الفجر وقبل شروق الشمس بنصف ساعة</span>
+                <span className="font-bold text-amber-900 dark:text-amber-200 block">{t('morningAdhkarCardTitle', lang)}</span>
+                <span className="text-[11px] text-amber-800 dark:text-amber-300">{t('morningAdhkarCardDesc', lang)}</span>
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/50 flex items-center gap-2.5">
               <span className="text-lg">🌇</span>
               <div>
-                <span className="font-bold text-amber-900 dark:text-amber-200 block">أذكار المساء:</span>
-                <span className="text-[11px] text-amber-800 dark:text-amber-300">يُستحب قراءتها بعد العصر وقبل غروب الشمس (المغرب) بنصف ساعة</span>
+                <span className="font-bold text-amber-900 dark:text-amber-200 block">{t('eveningAdhkarCardTitle', lang)}</span>
+                <span className="text-[11px] text-amber-800 dark:text-amber-300">{t('eveningAdhkarCardDesc', lang)}</span>
               </div>
             </div>
           </div>
@@ -921,7 +931,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                   onClick={(e) => e.stopPropagation()}
                   className="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 text-[11px] font-bold transition-colors flex items-center gap-1 shrink-0"
                 >
-                  <span>قراءة الورد</span>
+                  <span>{t('readPortion', lang)}</span>
                   <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
@@ -948,16 +958,16 @@ export const HabitList: React.FC<HabitListProps> = ({
               <span className="text-xl sm:text-2xl">🌙</span>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-                  صيام التطوع والسنن المؤكدة
+                  {t('fastingVoluntaryTitle', lang)}
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  صيام الإثنين والخميس، والأيام البيض (13 و 14 و 15)
+                  {t('fastingVoluntarySub', lang)}
                 </p>
               </div>
             </div>
             {isFastDayOfWeek && (
               <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                اليوم سنة {dayName} 🌿
+                {lang === 'ar' ? `اليوم سنة ${dayName} 🌿` : `Today is Sunnah ${dayName} 🌿`}
               </span>
             )}
           </div>
@@ -1008,13 +1018,13 @@ export const HabitList: React.FC<HabitListProps> = ({
                 </div>
 
                 <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
-                  {fastItem.completed ? 'صائم اليوم ✓' : 'تسجيل الصيام'}
+                  {fastItem.completed ? t('fastingTodayDone', lang) : t('recordFasting', lang)}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed text-center font-serif">
+          <div dir="rtl" className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed text-center font-serif">
             «مَنْ صَامَ يَوْمًا فِي سَبِيلِ اللَّهِ بَعَّدَ اللَّهُ وَجْهَهُ عَنِ النَّارِ سَبْعِينَ خَرِيفًا»
           </div>
         </section>

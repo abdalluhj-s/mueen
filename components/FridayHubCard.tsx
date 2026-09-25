@@ -10,9 +10,8 @@ import {
   Clock,
   Heart,
   ExternalLink,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 interface FridaySunanProps {
   onOpenSebhaWithSalawat: () => void;
@@ -26,6 +25,14 @@ const FRIDAY_SUNAN_ITEMS = [
 ];
 
 export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalawat }) => {
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
+
   const [completedItems, setCompletedItems] = useState<Record<string, boolean>>({});
   const [salawatCount, setSalawatCount] = useState<number>(0);
 
@@ -80,10 +87,12 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-base text-gray-900 dark:text-white">سنن وبركات يوم الجمعة</h3>
+              <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                {t('fridaySunanTitle', lang)}
+              </h3>
               {isFriday && (
                 <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full animate-pulse">
-                  اليوم جمعة مباركة
+                  {t('todayIsFriday', lang)}
                 </span>
               )}
             </div>
@@ -92,7 +101,7 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
         </div>
 
         <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200">
-          سيد الأيام
+          {t('masterOfDays', lang)}
         </span>
       </div>
 
@@ -101,10 +110,10 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
         <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <h4 className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200">
-            تذكير: ساعة الاستجابة في يوم الجمعة 🤲
+            {t('hourOfResponseTitle', lang)}
           </h4>
           <p className="text-xs text-amber-800/90 dark:text-amber-300/80 leading-relaxed font-serif">
-            «فيهِ سَاعَةٌ لَا يُوَافِقُهَا عَبْدٌ مُسْلِمٌ وَهُوَ قَائِمٌ يُصَلِّي يَسْأَلُ اللَّهَ شَيْئًا إِلَّا أَعْطَاهُ إِيَّاهُ» — أكثروا من الدعاء في آخر ساعة بعد العصر وقبل غروب الشمس.
+            {t('hourOfResponseDesc', lang)}
           </p>
         </div>
       </div>
@@ -116,20 +125,22 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
-              <h4 className="font-bold text-sm text-emerald-950 dark:text-emerald-200">قراءة سورة الكهف</h4>
+              <h4 className="font-bold text-sm text-emerald-950 dark:text-emerald-200">
+                {t('readSurahKahf', lang)}
+              </h4>
             </div>
             <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-emerald-200/60">
-              نور ما بين الجمعتين
+              {t('kahfBadge', lang)}
             </span>
           </div>
           <p className="text-xs text-gray-600 dark:text-gray-300 font-serif">
-            «من قرأ سورة الكهف في يوم الجمعة أضاء له من النور ما بين الجمعتين».
+            {t('kahfHadith', lang)}
           </p>
           <Link
             href="/quran?page=293"
             className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
-            <span>اقرأ سورة الكهف في المصحف</span>
+            <span>{t('kahfQuranBtn', lang)}</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -139,14 +150,16 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Heart className="w-5 h-5 text-amber-600 fill-amber-600" />
-              <h4 className="font-bold text-sm text-amber-950 dark:text-amber-200">الصلاة على النبي ﷺ</h4>
+              <h4 className="font-bold text-sm text-amber-950 dark:text-amber-200">
+                {t('salawatCounterTitle', lang)}
+              </h4>
             </div>
             <span className="text-xs font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-lg">
-              {salawatCount} صلاة
+              {salawatCount} {t('salawatCounterCount', lang)}
             </span>
           </div>
           <p className="text-xs text-gray-600 dark:text-gray-300 font-serif">
-            «فَأَكْثِرُوا عَلَيَّ مِنَ الصَّلَاةِ فِيهِ فَإِنَّ صَلَاتَكُمْ مَعْرُوضَةٌ عَلَيَّ».
+            {t('salawatHadith', lang)}
           </p>
 
           <div className="flex gap-2">
@@ -155,7 +168,7 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
               onClick={handleIncrementSalawat}
               className="flex-1 py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1"
             >
-              <span>+ صلِّ عليه الآن</span>
+              <span>{t('salawatBtn', lang)}</span>
             </button>
             <button
               type="button"
@@ -163,7 +176,7 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
               className="px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-amber-800 dark:text-amber-300 border border-amber-300/80 text-xs font-bold hover:bg-amber-50 transition-colors cursor-pointer"
               title="فتح السبحة الرقمية الكاملة"
             >
-              📿 السبحة
+              {t('openSebha', lang)}
             </button>
           </div>
         </div>
@@ -172,7 +185,7 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
       {/* قائمة سنن الجمعة الفردية */}
       <div className="space-y-2 pt-1">
         <span className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
-          سنن وآداب حضور الجمعة:
+          {t('fridaySunanListHeading', lang)}
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {FRIDAY_SUNAN_ITEMS.map((item) => {
@@ -182,7 +195,7 @@ export const FridayHubCard: React.FC<FridaySunanProps> = ({ onOpenSebhaWithSalaw
                 key={item.id}
                 type="button"
                 onClick={() => toggleItem(item.id)}
-                className={`p-3 rounded-2xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
+                className={`p-3 rounded-2xl border ${lang === 'ar' ? 'text-right' : 'text-left'} transition-all flex items-start gap-3 cursor-pointer ${
                   isDone
                     ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200'
                     : 'bg-gray-50/70 dark:bg-slate-800/60 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:border-emerald-300'

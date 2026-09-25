@@ -2,12 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { getTodayHadith, getRandomHadith, DailyHadith } from '../data/hadiths';
-import { Quote, Sparkles, RotateCw, Copy, Check, BookOpen } from 'lucide-react';
+import { Quote, Sparkles, RotateCw, Copy, Check } from 'lucide-react';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 export const HadithDailyCard: React.FC = () => {
   const [hadith, setHadith] = useState<DailyHadith>(getTodayHadith());
   const [copied, setCopied] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
 
   const handleNextHadith = () => {
     setIsAnimating(true);
@@ -33,25 +41,27 @@ export const HadithDailyCard: React.FC = () => {
       {/* الرأس: شارة حديث اليوم والأزرار */}
       <div className="flex items-center justify-between pb-3 border-b border-emerald-100 dark:border-emerald-900/40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
             <Quote className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-              <span>حديث اليوم النبوي الشريف</span>
-              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-300/40">
-                {hadith.topic}
-              </span>
+            <h3 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+              <span>{t('hadithTitle', lang)}</span>
+              {hadith.topic && (
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-300/40">
+                  {hadith.topic}
+                </span>
+              )}
             </h3>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={handleCopy}
             className="p-2 rounded-xl text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title="نسخ الحديث"
+            title={copied ? t('copied', lang) : t('copyHadith', lang)}
           >
             {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
           </button>
@@ -60,28 +70,28 @@ export const HadithDailyCard: React.FC = () => {
             type="button"
             onClick={handleNextHadith}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:border-emerald-400 transition-all cursor-pointer shadow-2xs"
-            title="عرض حديث نبوي آخر"
+            title={t('anotherHadith', lang)}
           >
             <RotateCw className={`w-3.5 h-3.5 ${isAnimating ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">حديث آخر</span>
+            <span className="hidden sm:inline">{t('anotherHadith', lang)}</span>
           </button>
         </div>
       </div>
 
-      {/* متن الحديث الشريف */}
+      {/* متن الحديث النبوي الشريف (باللغة العربية الأصيلة المشكولة كما طلب المستخدم) */}
       <div
         className={`py-4 space-y-3 transition-opacity duration-200 ${
           isAnimating ? 'opacity-0 scale-98' : 'opacity-100 scale-100'
         }`}
       >
-        <p className="font-serif text-sm sm:text-base text-gray-800 dark:text-slate-100 leading-relaxed font-bold text-justify">
+        <p dir="rtl" className="font-serif text-sm sm:text-base text-gray-800 dark:text-slate-100 leading-relaxed font-bold text-justify">
           {hadith.text}
         </p>
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-emerald-800 dark:text-emerald-300">
-              عن {hadith.narrator}
+              {lang === 'ar' ? `عن ${hadith.narrator}` : `Narrated by ${hadith.narrator}`}
             </span>
             <span>•</span>
             <span className="font-mono text-[11px]">{hadith.source}</span>

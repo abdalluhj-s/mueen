@@ -142,6 +142,11 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
     }
   };
 
+  const cycleFontSize = () => {
+    const nextSize = fontSize === 'sm' ? 'md' : fontSize === 'md' ? 'lg' : 'sm';
+    changeFontSize(nextSize);
+  };
+
   const toggleTheme = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove('dark');
@@ -217,120 +222,93 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
     }
   };
 
-  const userName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'ضيف مُعين';
+  const userName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || t('guestUser', lang);
   const userAvatar = localAvatar || currentUser?.user_metadata?.avatar_url;
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-emerald-100 dark:border-slate-800 shadow-sm transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* الشعار واسم المنصة */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform border border-emerald-500/30 flex items-center justify-center bg-slate-900 shrink-0">
-            <img src="/logo.jpg" alt="شعار مُعين" className="w-full h-full object-cover" />
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        {/* الشعار واسم المنصة (مُعين أو Mueen حسب اللغة) */}
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform border border-emerald-500/30 flex items-center justify-center bg-slate-900 shrink-0">
+            <img src="/logo.jpg" alt={lang === 'ar' ? 'شعار مُعين' : 'Mueen Logo'} className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-1.5">
-              مُعين
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-medium border border-emerald-200/60 dark:border-emerald-800/60">
-                شريك الالتزام
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-1.5">
+              {lang === 'ar' ? 'مُعين' : 'Mueen'}
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-medium border border-emerald-200/60 dark:border-emerald-800/60">
+                {t('appTagline', lang)}
               </span>
             </h1>
           </div>
         </Link>
 
-        {/* معلومات المستخدم وسلسلة الالتزام والأدوات */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
-          {/* زر الأذكار الجديد */}
+        {/* معلومات المستخدم وسلسلة الالتزام والأدوات المختصرة الأنيقة */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* زر الأذكار: شكل الكتاب فقط */}
           <Link 
             href="/adhkar"
-            className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200/70 dark:border-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-xs"
+            title={t('adhkar', lang)}
+            aria-label={t('adhkar', lang)}
+            className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors border border-emerald-200/70 dark:border-emerald-800 shrink-0 shadow-2xs"
           >
-            <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>الأذكار</span>
+            <BookMarked className="w-4 h-4" />
           </Link>
 
-          {/* زر السجل الشهري */}
+          {/* زر السجل: شكل النتيجة فقط */}
           <Link 
             href="/progress"
-            className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200 px-2.5 sm:px-3 py-1.5 rounded-full border border-gray-200/70 dark:border-slate-700 text-xs sm:text-sm font-semibold hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shadow-xs"
+            title={t('progress', lang)}
+            aria-label={t('progress', lang)}
+            className="p-2 rounded-full bg-gray-50 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors border border-gray-200/70 dark:border-slate-700 shrink-0 shadow-2xs"
           >
-            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>السجل</span>
+            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </Link>
 
-          {/* عداد الالتزام المتواصل المحسوب واقعياً */}
-          <div className="hidden md:flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-full border border-amber-200/70 dark:border-amber-800/70 text-xs sm:text-sm font-semibold shadow-xs">
-            <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
+          {/* عداد الالتزام: الشعلة مع عدد الأيام مقتضباً (مثل: 3 أيام 🔥) */}
+          <div 
+            title={t('streak', lang)}
+            className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 sm:px-2.5 py-1 rounded-full border border-amber-200/70 dark:border-amber-800/70 text-xs font-bold shadow-2xs shrink-0"
+          >
+            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500 animate-pulse" />
             <span>
-              {userStreak <= 1
-                ? 'اليوم الأول'
-                : userStreak === 2
-                ? 'يومان متتاليان'
-                : userStreak >= 3 && userStreak <= 10
-                ? `${userStreak} أيام متتالية`
-                : `${userStreak} يوماً متتالياً`}
+              {userStreak} {lang === 'ar' ? (userStreak === 1 ? 'يوم' : userStreak === 2 ? 'يومان' : 'أيام') : (userStreak === 1 ? 'day' : 'days')}
             </span>
           </div>
 
-          {/* محدد حجم الخط (3 أحجام: صغير / قياسي / كبير) */}
-          <div className="flex items-center bg-gray-100 dark:bg-slate-800 p-0.5 rounded-full border border-gray-200/80 dark:border-slate-700 text-xs shrink-0" title="تغيير حجم خط الموقع والتطبيق">
-            <button
-              type="button"
-              onClick={() => changeFontSize('sm')}
-              aria-label="خط صغير"
-              className={`px-2 py-0.5 rounded-full transition-all text-[11px] font-bold cursor-pointer ${
-                fontSize === 'sm'
-                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              أ-
-            </button>
-            <button
-              type="button"
-              onClick={() => changeFontSize('md')}
-              aria-label="خط قياسي"
-              className={`px-2 py-0.5 rounded-full transition-all text-[12px] font-bold cursor-pointer ${
-                fontSize === 'md'
-                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              أ
-            </button>
-            <button
-              type="button"
-              onClick={() => changeFontSize('lg')}
-              aria-label="خط كبير"
-              className={`px-2 py-0.5 rounded-full transition-all text-[13px] font-black cursor-pointer ${
-                fontSize === 'lg'
-                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              أ+
-            </button>
-          </div>
+          {/* زر حجم الخط الذكي: يتبدل بنقرة واحدة بحلقة ثلاثية (صغير -> قياسي -> كبير) */}
+          <button
+            type="button"
+            onClick={cycleFontSize}
+            title={lang === 'ar' ? `حجم الخط: ${fontSize === 'sm' ? 'صغير' : fontSize === 'md' ? 'قياسي' : 'كبير'} (اضغط للتبديل)` : `Font size: ${fontSize.toUpperCase()} (Click to cycle)`}
+            aria-label={t('fontSizeLabel', lang)}
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 border border-gray-200/80 dark:border-slate-700 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:border-emerald-400 transition-all font-bold cursor-pointer shadow-2xs shrink-0"
+          >
+            <span className={fontSize === 'sm' ? 'text-[11px]' : fontSize === 'md' ? 'text-xs font-bold' : 'text-sm font-black text-emerald-600'}>
+              A
+            </span>
+            <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-mono ml-0.5">
+              {fontSize === 'sm' ? '₁' : fontSize === 'md' ? '₂' : '₃'}
+            </span>
+          </button>
 
-          {/* زر تثبيت التطبيق على الجهاز */}
+          {/* زر تثبيت التطبيق: سهم الداونلود فقط */}
           {!isStandalone ? (
             <button
               type="button"
               onClick={handleInstallClick}
-              title="تثبيت مُعين كتطبيق على شاشتك"
-              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs active:scale-[0.98] cursor-pointer shrink-0"
+              title={t('installApp', lang)}
+              aria-label={t('installApp', lang)}
+              className="p-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white transition-all shadow-xs active:scale-95 cursor-pointer shrink-0"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">تثبيت التطبيق</span>
-              <span className="xs:hidden">تثبيت</span>
+              <Download className="w-4 h-4" />
             </button>
           ) : (
             <span
-              title="التطبيق مثبت على جهازك"
-              className="hidden sm:flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-800 text-[11px] font-semibold shrink-0"
+              title={t('installed', lang)}
+              className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800 shrink-0"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              <span>مثبّت</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             </span>
           )}
 
@@ -338,8 +316,9 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
           <button
             type="button"
             onClick={toggleTheme}
-            aria-label="تبديل الوضع الليلي"
-            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            title={t('themeModeLabel', lang)}
+            aria-label={t('themeModeLabel', lang)}
+            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0"
           >
             {isDarkMode ? (
               <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 animate-in spin-in-180 duration-200" />
@@ -363,9 +342,9 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
           {/* زر الإعدادات والتخصيص */}
           <Link
             href="/settings"
-            title="الإعدادات والتخصيص"
-            aria-label="الإعدادات والتخصيص"
-            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title={t('settings', lang)}
+            aria-label={t('settings', lang)}
+            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
           >
             <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
           </Link>
@@ -396,15 +375,17 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                   onClick={() => setIsBellOpen(false)}
                 />
                 <div
-                  dir="rtl"
-                  className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:left-0 sm:right-auto sm:top-full sm:mt-2 w-auto sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-4 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] overflow-y-auto"
+                  dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                  className={`fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto ${
+                    lang === 'ar' ? 'sm:left-0 sm:right-auto' : 'sm:right-0 sm:left-auto'
+                  } sm:top-full sm:mt-2 w-auto sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-4 z-50 animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] overflow-y-auto`}
                 >
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800 mb-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-gray-900 dark:text-white text-sm">التنبيهات</span>
+                      <span className="font-bold text-gray-900 dark:text-white text-sm">{t('notifications', lang)}</span>
                       {unreadCount > 0 && (
                         <span className="text-[11px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded-md">
-                          {unreadCount} جديدة
+                          {unreadCount} {t('newBadge', lang)}
                         </span>
                       )}
                     </div>
@@ -415,7 +396,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                         className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
                       >
                         <CheckCheck className="w-3.5 h-3.5" />
-                        <span>قراءة الكل</span>
+                        <span>{t('markAllRead', lang)}</span>
                       </button>
                     )}
                   </div>
@@ -440,11 +421,11 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                             </span>
                             <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">{notif.time}</span>
                           </div>
-                          <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-[11px] pr-5">{notif.desc}</p>
+                          <p className={`text-gray-600 dark:text-gray-400 leading-relaxed text-[11px] ${lang === 'ar' ? 'pr-5' : 'pl-5'}`}>{notif.desc}</p>
                         </div>
                       ))
                     ) : (
-                      <p className="text-center py-6 text-xs text-gray-400 dark:text-gray-500">لا توجد تنبيهات جديدة</p>
+                      <p className="text-center py-6 text-xs text-gray-400 dark:text-gray-500">{t('noNotifications', lang)}</p>
                     )}
                   </div>
 
@@ -454,7 +435,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                     className="mt-3 flex items-center justify-center gap-1.5 py-2 px-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors border border-emerald-200/60 dark:border-emerald-800/60 shadow-2xs"
                   >
                     <BellRing className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>ضبط إشعارات الهاتف ومواقيتها 📲</span>
+                    <span>{t('adjustNotifications', lang)}</span>
                   </Link>
                 </div>
               </>
@@ -488,8 +469,10 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                       onClick={() => setIsProfileOpen(false)}
                     />
                     <div
-                      dir="rtl"
-                      className="fixed inset-x-4 top-16 sm:absolute sm:inset-x-auto sm:left-0 sm:right-auto sm:top-full sm:mt-2 w-auto sm:w-60 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
+                      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                      className={`fixed inset-x-4 top-16 sm:absolute sm:inset-x-auto ${
+                        lang === 'ar' ? 'sm:left-0 sm:right-auto' : 'sm:right-0 sm:left-auto'
+                      } sm:top-full sm:mt-2 w-auto sm:w-60 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 p-3 z-50 animate-in fade-in zoom-in-95 duration-150`}
                     >
                       <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 mb-2">
                         <div className="font-bold text-gray-900 dark:text-white text-sm truncate">{userName}</div>
@@ -502,7 +485,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                         className="w-full px-3 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer mb-1"
                       >
                         <Settings className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        <span>الإعدادات والتخصيص</span>
+                        <span>{t('settings', lang)}</span>
                       </Link>
 
                       <button
@@ -514,7 +497,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                         className="w-full px-3 py-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer mb-1"
                       >
                         <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        <span>تعديل الملف الشخصي</span>
+                        <span>{t('editProfile', lang)}</span>
                       </button>
 
                       <button
@@ -523,7 +506,7 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                         className="w-full px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span>تسجيل الخروج</span>
+                        <span>{t('signOut', lang)}</span>
                       </button>
                     </div>
                   </>
@@ -535,8 +518,8 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">تسجيل الدخول</span>
-                <span className="sm:hidden">دخول</span>
+                <span className="hidden sm:inline">{t('signIn', lang)}</span>
+                <span className="sm:hidden">{t('signIn', lang)}</span>
               </Link>
             )
           )}

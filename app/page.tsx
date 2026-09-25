@@ -19,6 +19,12 @@ import {
   getSavedHijriAdjustment, 
   SETTINGS_CHANGE_EVENT 
 } from '../lib/timeSettings';
+import { 
+  getSavedLanguage, 
+  Language, 
+  LANGUAGE_CHANGE_EVENT, 
+  t 
+} from '../lib/translations';
 import Link from 'next/link';
 
 // إصدار العادات الافتراضية — تغييره يؤدي لتحديث القائمة للترتيب الزمني والسنن والصيام
@@ -93,9 +99,15 @@ export default function DashboardPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [showGuestBanner, setShowGuestBanner] = useState(true);
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -147,7 +159,6 @@ export default function DashboardPage() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         setIsLoggedIn(true);
-        setShowGuestBanner(false);
         setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'أخي المبارك');
         setUserEmail(user.email ?? null);
 
@@ -237,7 +248,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
+    <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
       <Header userStreak={userStreak} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
@@ -287,7 +298,7 @@ export default function DashboardPage() {
           <aside className="space-y-6">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                رفيق المسير
+                {t('myPartner', lang)}
               </span>
               <button
                 type="button"
@@ -295,7 +306,7 @@ export default function DashboardPage() {
                 className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:underline cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>دعوة شريك</span>
+                <span>{t('invitePartner', lang)}</span>
               </button>
             </div>
 
@@ -312,7 +323,7 @@ export default function DashboardPage() {
             <div className="bg-emerald-900/5 dark:bg-emerald-950/30 border border-emerald-800/10 dark:border-emerald-900/40 rounded-2xl p-5">
               <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-bold text-xs mb-2">
                 <Quote className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                <span>قبس اليوم</span>
+                <span>{t('dailyQuote', lang)}</span>
               </div>
               <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-serif">
                 «من صام يوماً في سبيل الله بعد الله وجهه عن النار سبعين خريفاً»

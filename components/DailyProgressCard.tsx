@@ -1,6 +1,8 @@
-'use strict';
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle2, TrendingUp } from 'lucide-react';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 interface DailyProgressCardProps {
   completedCount: number;
@@ -21,14 +23,22 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
   countryName,
   timeString,
 }) => {
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
+
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // اختيار رسالة تحفيزية بناءً على نسبة الإنجاز
+  // اختيار رسالة تحفيزية بناءً على نسبة الإنجاز واللغة
   const getMotivationalMessage = (pct: number) => {
-    if (pct === 100) return 'ما شاء الله! أتممت جميع أورادك اليومية مبارك التزامك 🌟';
-    if (pct >= 60) return 'أحسنت! قطعت شوطاً رائعاً، قارب على الإتمام 🌿';
-    if (pct > 0) return 'بداية طيبة، استعن بالله وأتمم بقية وردك 📖';
-    return '«أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ» 🕊️';
+    if (pct === 100) return t('motivational100', lang);
+    if (pct >= 60) return t('motivational60', lang);
+    if (pct > 0) return t('motivationalStart', lang);
+    return t('motivationalZero', lang);
   };
 
   return (
@@ -56,7 +66,7 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
             )}
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-wide">
-            ورد اليوم وعهده
+            {t('todayPortionHeading', lang)}
           </h2>
           <p className="text-xs sm:text-sm text-emerald-100/90 mt-1 font-normal">
             {getMotivationalMessage(percentage)}
@@ -65,10 +75,12 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
 
         {/* مؤشر النسبة الدائري أو الرقمي للسرعة */}
         <div className="flex items-center gap-3 self-start sm:self-center bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10">
-          <div className="text-right">
+          <div className={lang === 'ar' ? 'text-right' : 'text-left'}>
             <div className="text-2xl font-black text-white">{percentage}%</div>
             <div className="text-[11px] text-emerald-200">
-              {completedCount} من أصل {totalCount} عادات
+              {lang === 'ar' 
+                ? `${completedCount} من أصل ${totalCount} عادات`
+                : `${completedCount} of ${totalCount} habits`}
             </div>
           </div>
           <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30">
@@ -92,7 +104,7 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
         <div className="flex justify-between items-center text-[11px] text-emerald-200/80 mt-1.5 font-medium">
           <span>0%</span>
           <span>50%</span>
-          <span>100% تم الإنجاز</span>
+          <span>{t('progressDone100', lang)}</span>
         </div>
       </div>
     </div>

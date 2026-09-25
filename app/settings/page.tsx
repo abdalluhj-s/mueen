@@ -237,7 +237,7 @@ export default function SettingsPage() {
   const currentCountryObj = SUPPORTED_COUNTRIES.find((c) => c.id === selectedCountryId) || SUPPORTED_COUNTRIES[0];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
+    <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
