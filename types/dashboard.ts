@@ -1,4 +1,4 @@
-export type HabitCategory = 'صلاة' | 'سنة' | 'قرآن' | 'أذكار' | 'صيام' | 'عام';
+export type HabitCategory = 'صلاة' | 'سنة' | 'قرآن' | 'أذكار' | 'صيام' | 'أوراد' | 'بر' | 'علم' | 'عام';
 
 export interface HabitItem {
   id: string;
@@ -7,9 +7,11 @@ export interface HabitItem {
   completed: boolean;
   notes?: string;
   timeHint?: string; // مثلاً: "قبل الشروق"، "بعد صلاة الفجر"
-  timeSlot?: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha' | 'quran' | 'night' | 'fasting';
+  timeSlot?: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha' | 'quran' | 'night' | 'fasting' | 'awrad' | 'friday';
   isSunnah?: boolean;
   fastingType?: 'mon_thu' | 'white_days' | 'voluntary';
+  isCustom?: boolean;
+  isDeletable?: boolean;
 }
 
 export interface PartnerStatus {
@@ -36,4 +38,3 @@ export interface PartnerMessage {
   type: string;
   createdAt: string;
 }
-

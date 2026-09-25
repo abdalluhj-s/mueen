@@ -4,6 +4,7 @@ import React, { useState, useTransition, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { DailyProgressCard } from '../components/DailyProgressCard';
 import { HabitList } from '../components/HabitList';
+import { HadithDailyCard } from '../components/HadithDailyCard';
 import { PartnerCard } from '../components/PartnerCard';
 import { PartnerInviteModal } from '../components/PartnerInviteModal';
 import { AddHabitModal } from '../components/AddHabitModal';
@@ -269,8 +270,11 @@ export default function DashboardPage() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* العمود الرئيسي: قائمة عادات اليوم */}
+          {/* العمود الرئيسي: بطاقة الحديث النبوي وقائمة أوراد وعادات اليوم */}
           <section className="lg:col-span-2 space-y-6">
+            {/* بطاقة حديث اليوم النبوي الشريف */}
+            <HadithDailyCard />
+
             <HabitList
               habits={habits}
               onToggleHabit={handleToggleHabit}

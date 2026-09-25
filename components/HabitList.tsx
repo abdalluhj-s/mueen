@@ -18,8 +18,14 @@ import {
   ArrowRight,
   Clock,
   Trash2,
+  Heart,
+  GraduationCap,
+  Plus,
 } from 'lucide-react';
 import { HabitItem } from '../types/dashboard';
+import { FridayHubCard } from './FridayHubCard';
+import { SebhaModal } from './SebhaModal';
+import { EidSunanModal } from './EidSunanModal';
 
 interface HabitListProps {
   habits: HabitItem[];
@@ -28,7 +34,7 @@ interface HabitListProps {
   onAddHabitClick?: () => void;
 }
 
-type MainHub = 'prayers' | 'quran' | 'adhkar' | 'fasting';
+type MainHub = 'prayers' | 'awrad' | 'quran' | 'adhkar' | 'friday' | 'fasting';
 
 export const HabitList: React.FC<HabitListProps> = ({
   habits,
@@ -38,6 +44,11 @@ export const HabitList: React.FC<HabitListProps> = ({
 }) => {
   // التابة الرئيسية النشطة (الافتراضي: الصلوات والسنن)
   const [activeHub, setActiveHub] = useState<MainHub>('prayers');
+
+  // النوافذ المنبثقة للسبحة والأعياد
+  const [isSebhaOpen, setIsSebhaOpen] = useState(false);
+  const [isEidModalOpen, setIsEidModalOpen] = useState(false);
+  const [sebhaInitialIndex, setSebhaInitialIndex] = useState(0);
 
   // حالة فتح/طي كل صلاة في قائمة الصلوات والسنن (الأكورديون)
   const [openPrayers, setOpenPrayers] = useState<Record<string, boolean>>({
@@ -86,9 +97,9 @@ export const HabitList: React.FC<HabitListProps> = ({
   };
 
   const { isFastDayOfWeek, dayName, hijriDay, isWhiteDay } = getFastingInfo();
+  const isFriday = new Date().getDay() === 5;
 
-  // إحصائيات الأقسام الأربعة
-  // الصلوات المحددة بالتحديد
+  // إحصائيات الصلوات الخمس وسننها
   const fajrHabits = habits.filter((h) => h.id === 'h1' || h.id === 'h1_sunnah' || h.id === 'h9');
   const dhuhrHabits = habits.filter(
     (h) => h.id === 'h2_sunnah_before' || h.id === 'h2' || h.id === 'h2_sunnah_after' || h.id === 'h2_sunnah'
@@ -108,24 +119,33 @@ export const HabitList: React.FC<HabitListProps> = ({
   const totalPrayersCount = uniquePrayerHabits.length;
   const completedPrayersCount = uniquePrayerHabits.filter((h) => h.completed).length;
 
+  // الورد القرآني
   const quranHabit = habits.find((h) => h.id === 'h8' || h.category === 'قرآن');
   const isQuranCompleted = !!quranHabit?.completed;
 
+  // الأذكار
   const adhkarList = habits.filter((h) => h.id === 'h9' || h.id === 'h10' || h.id === 'h11' || h.category === 'أذكار');
   const uniqueAdhkar = Array.from(new Set(adhkarList));
   const completedAdhkarCount = uniqueAdhkar.filter((h) => h.completed).length;
 
+  // الصيام
   const fastingList = habits.filter((h) => h.category === 'صيام' || h.timeSlot === 'fasting');
   const completedFastingCount = fastingList.filter((h) => h.completed).length;
 
-  // العادات المخصصة التي أضافها المستخدم بنفسه
-  const customHabits = habits.filter(
+  // الأوراد اليومية المخصصة والبر والعلم (صله الرحم، بر الوالدين، زيارة المريض، قراءة كتاب، إلخ)
+  const awradHabits = habits.filter(
     (h) =>
+      h.category === 'أوراد' ||
+      h.category === 'بر' ||
+      h.category === 'علم' ||
+      h.timeSlot === 'awrad' ||
       h.id.startsWith('custom_') ||
+      h.id.startsWith('sug_') ||
       (!h.timeSlot && !['صلاة', 'سنة', 'قرآن', 'أذكار', 'صيام'].includes(h.category))
   );
+  const completedAwradCount = awradHabits.filter((h) => h.completed).length;
 
-  // تعريف بيانات الصلوات الخمسة وقوائمها المنسدلة
+  // تعريف بيانات الصلوات الخمسة وقوائمها المنسدلة مع مواقيت الأذكار الدقيقة
   const prayerSections = [
     {
       id: 'fajr',
@@ -167,169 +187,200 @@ export const HabitList: React.FC<HabitListProps> = ({
   return (
     <div className="space-y-5">
       {/* ======================================================== */}
-      {/* 1. الكروت الأربعة الرئيسية (The 4 Main Hubs)             */}
+      {/* 1. الكروت الرئيسية الذكية (The Smart Navigation Hubs)    */}
       {/* ======================================================== */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
         {/* كارت 1: الصلوات والسنن */}
         <button
           type="button"
           onClick={() => setActiveHub('prayers')}
-          className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'prayers'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
-              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
           }`}
         >
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
                 activeHub === 'prayers'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
               }`}
             >
-              <Compass className="w-4 h-4" />
+              <Compass className="w-3.5 h-3.5" />
             </div>
-            <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+            <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
               {completedPrayersCount}/{totalPrayersCount}
             </span>
           </div>
-          <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
             الصلوات والسنن
           </div>
-          <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {completedPrayersCount === totalPrayersCount && totalPrayersCount > 0
-              ? 'أتممت الصلوات بفضل الله ✓'
-              : 'الفرائض والرواتب'}
-          </div>
-          {/* شريط تقدم مصغر */}
-          <div className="w-full bg-gray-200/80 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${totalPrayersCount > 0 ? Math.round((completedPrayersCount / totalPrayersCount) * 100) : 0}%`,
-              }}
-            />
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+            الفرائض والرواتب
           </div>
         </button>
 
-        {/* كارت 2: ورد القرآن الكريم */}
+        {/* كارت 2: أورادي اليومية والبر */}
+        <button
+          type="button"
+          onClick={() => setActiveHub('awrad')}
+          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+            activeHub === 'awrad'
+              ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
+              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
+                activeHub === 'awrad'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            </div>
+            <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
+              {completedAwradCount}/{awradHabits.length}
+            </span>
+          </div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+            أورادي اليومية
+          </div>
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+            الصلة والبر والعلم
+          </div>
+        </button>
+
+        {/* كارت 3: ورد القرآن الكريم */}
         <button
           type="button"
           onClick={() => setActiveHub('quran')}
-          className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'quran'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
-              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
           }`}
         >
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
                 activeHub === 'quran'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
               }`}
             >
-              <BookOpen className="w-4 h-4" />
+              <BookOpen className="w-3.5 h-3.5" />
             </div>
-            <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+            <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
               {isQuranCompleted ? '1/1' : '0/1'}
             </span>
           </div>
-          <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
             الورد والقرآن
           </div>
-          <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {isQuranCompleted ? 'تم إنجاز الورد اليومي ✨' : 'في انتظار التلاوة'}
-          </div>
-          <div className="w-full bg-gray-200/80 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-              style={{ width: isQuranCompleted ? '100%' : '0%' }}
-            />
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+            {isQuranCompleted ? 'تم إنجاز الورد ✓' : 'المصحف الشريف'}
           </div>
         </button>
 
-        {/* كارت 3: الأذكار وحصن المسلم */}
+        {/* كارت 4: الأذكار والسبحة */}
         <button
           type="button"
           onClick={() => setActiveHub('adhkar')}
-          className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'adhkar'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
-              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
           }`}
         >
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
                 activeHub === 'adhkar'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
               }`}
             >
-              <Sun className="w-4 h-4" />
+              <Sun className="w-3.5 h-3.5" />
             </div>
-            <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+            <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">
               {completedAdhkarCount}/{uniqueAdhkar.length}
             </span>
           </div>
-          <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
-            الأذكار وحصن المسلم
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+            الأذكار والسبحة
           </div>
-          <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {completedAdhkarCount === uniqueAdhkar.length && uniqueAdhkar.length > 0
-              ? 'أتممت أذكارك اليومية 🌿'
-              : 'الصباح، المساء، والنوم'}
-          </div>
-          <div className="w-full bg-gray-200/80 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${uniqueAdhkar.length > 0 ? Math.round((completedAdhkarCount / uniqueAdhkar.length) * 100) : 0}%`,
-              }}
-            />
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+            الصباح والمساء
           </div>
         </button>
 
-        {/* كارت 4: صيام التطوع */}
+        {/* كارت 5: سنن الجمعة */}
+        <button
+          type="button"
+          onClick={() => setActiveHub('friday')}
+          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+            activeHub === 'friday'
+              ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
+              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
+                activeHub === 'friday'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
+              }`}
+            >
+              <span className="text-xs">🕌</span>
+            </div>
+            {isFriday && (
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-600 text-white animate-pulse">
+                اليوم
+              </span>
+            )}
+          </div>
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+            سنن الجمعة
+          </div>
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+            الكهف وساعة الإجابة
+          </div>
+        </button>
+
+        {/* كارت 6: صيام التطوع */}
         <button
           type="button"
           onClick={() => setActiveHub('fasting')}
-          className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
+          className={`p-3 sm:p-3.5 rounded-2xl border text-right transition-all cursor-pointer relative overflow-hidden group shadow-2xs ${
             activeHub === 'fasting'
               ? 'bg-emerald-50/90 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md scale-101'
-              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-xs'
+              : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
           }`}
         >
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
                 activeHub === 'fasting'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
               }`}
             >
-              <Moon className="w-4 h-4" />
+              <Moon className="w-3.5 h-3.5" />
             </div>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-              {isFastDayOfWeek ? `سنة ${dayName}` : isWhiteDay ? 'أيام بيض' : 'تطوع'}
+            <span className="text-[10px] font-bold px-1 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+              {isFastDayOfWeek ? dayName : isWhiteDay ? 'البيض' : 'تطوع'}
             </span>
           </div>
-          <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
+          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
             صيام التطوع
           </div>
-          <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {completedFastingCount > 0 ? 'صائم اليوم تقبل الله 🌿' : 'الإثنين والخميس والأيام البيض'}
-          </div>
-          <div className="w-full bg-gray-200/80 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${fastingList.length > 0 ? Math.round((completedFastingCount / fastingList.length) * 100) : 0}%`,
-              }}
-            />
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+            {completedFastingCount > 0 ? 'صائم تقبل الله' : 'الإثنين والخميس'}
           </div>
         </button>
       </div>
@@ -367,7 +418,7 @@ export const HabitList: React.FC<HabitListProps> = ({
             </div>
           </div>
 
-          {/* أكورديون الصلوات الخمسة (تابة جوه تابة) */}
+          {/* أكورديون الصلوات الخمسة */}
           <div className="space-y-3">
             {prayerSections.map((prayer) => {
               const isOpen = !!openPrayers[prayer.id];
@@ -445,7 +496,6 @@ export const HabitList: React.FC<HabitListProps> = ({
                             }`}
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              {/* زر الاختيار Checkbox */}
                               <button
                                 type="button"
                                 role="checkbox"
@@ -487,11 +537,21 @@ export const HabitList: React.FC<HabitListProps> = ({
                                     </span>
                                   )}
                                 </div>
-                                {item.timeHint && (
+                                
+                                {/* إظهار المواقيت الدقيقة للأذكار بناء على طلب المستخدم */}
+                                {item.id === 'h9' ? (
+                                  <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5 font-bold flex items-center gap-1">
+                                    <span>🌅 الوقت الأفضل: بعد الفجر وقبل شروق الشمس بنصف ساعة</span>
+                                  </p>
+                                ) : item.id === 'h10' ? (
+                                  <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5 font-bold flex items-center gap-1">
+                                    <span>🌇 الوقت الأفضل: بعد العصر وقبل غروب الشمس (المغرب) بنصف ساعة</span>
+                                  </p>
+                                ) : item.timeHint ? (
                                   <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                                     {item.timeHint}
                                   </p>
-                                )}
+                                ) : null}
                               </div>
                             </div>
 
@@ -529,7 +589,128 @@ export const HabitList: React.FC<HabitListProps> = ({
         </section>
       )}
 
-      {/* ----------------- ب. قسم الورد والقرآن ----------------- */}
+      {/* ----------------- ب. قسم أورادي اليومية والبر والعلم ----------------- */}
+      {activeHub === 'awrad' && (
+        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-4 animate-in fade-in duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                🌟
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
+                  أورادي اليومية وأعمال البر والعلم
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  صلة الرحم، بر الوالدين، زيارة المريض، طلب العلم، إتقان العمل، وقراءة الكتب
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {onAddHabitClick && (
+                <button
+                  type="button"
+                  onClick={onAddHabitClick}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>إضافة ورد جديد 📚</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* قائمة الأوراد المضافة */}
+          {awradHabits.length === 0 ? (
+            <div className="py-12 text-center space-y-3 bg-gray-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-slate-700">
+              <span className="text-3xl">🌿</span>
+              <p className="text-xs text-gray-500 font-semibold">لم تقم بإضافة أي أوراد يومية مخصصة بعد</p>
+              <button
+                type="button"
+                onClick={onAddHabitClick}
+                className="px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors"
+              >
+                تصفح مكتبة الأوراد المقترحة واختر ما يناسبك
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {awradHabits.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => onToggleHabit(item.id)}
+                  className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer ${
+                    item.completed
+                      ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800/40 text-gray-800 dark:text-gray-200'
+                      : 'bg-white dark:bg-slate-900 border-gray-200/80 dark:border-slate-800 hover:border-emerald-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={item.completed}
+                      aria-label={item.title}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleHabit(item.id);
+                      }}
+                      className={`w-5 h-5 rounded-lg flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
+                        item.completed
+                          ? 'bg-emerald-600 border-emerald-600 text-white scale-105'
+                          : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800'
+                      }`}
+                    >
+                      {item.completed && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+                    </button>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`text-xs sm:text-sm font-semibold truncate ${
+                            item.completed
+                              ? 'text-gray-400 dark:text-gray-500 line-through'
+                              : 'text-gray-900 dark:text-white'
+                          }`}
+                        >
+                          {item.title}
+                        </span>
+
+                        <span className="text-[10px] font-bold px-2 py-0.2 rounded-md bg-emerald-100/70 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                          {item.category}
+                        </span>
+                      </div>
+                      {item.timeHint && (
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                          {item.timeHint}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* زر حذف / إزالة الورد بناء على طلب المستخدم */}
+                  {onDeleteHabit && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteHabit(item.id);
+                      }}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      title="إزالة هذا الورد من جدولك اليومي"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ----------------- ج. قسم الورد والقرآن ----------------- */}
       {activeHub === 'quran' && (
         <section className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/80 dark:border-slate-800 p-5 sm:p-7 shadow-xs space-y-5 animate-in fade-in duration-200">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
@@ -540,7 +721,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                   ورد القرآن الكريم اليومي
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  حبل الصلة مع كلام الله وتدبر آياته العظيمة
+                  تلاوة وتدبر مع المصحف العادي النظيف أو المصحف ثلاثي الأبعاد
                 </p>
               </div>
             </div>
@@ -608,7 +789,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                 «اقْرَؤُوا القُرْآنَ فإنَّه يَأْتي يَومَ القِيامَةِ شَفِيعًا لأَصْحابِهِ»
               </div>
               <p className="text-xs text-emerald-200/90 mt-1">
-                تصفح آيات القرآن الكريم بسهولة مع حفظ مكان وقوفك الأخير
+                تصفح آيات القرآن الكريم بسهولة في المصحف العادي النظيف مع حفظ مكان وقوفك الأخير
               </p>
             </div>
             <Link
@@ -622,7 +803,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         </section>
       )}
 
-      {/* ----------------- ج. قسم الأذكار وحصن المسلم ----------------- */}
+      {/* ----------------- د. قسم الأذكار وحصن المسلم والسبحة ----------------- */}
       {activeHub === 'adhkar' && (
         <section className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/80 dark:border-slate-800 p-5 sm:p-7 shadow-xs space-y-4 animate-in fade-in duration-200">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
@@ -637,16 +818,51 @@ export const HabitList: React.FC<HabitListProps> = ({
                 </p>
               </div>
             </div>
-            <Link
-              href="/adhkar"
-              className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1"
-            >
-              <span>فتح السبحة وحصن المسلم</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
+
+            <div className="flex items-center gap-2">
+              {/* زر السبحة الإلكترونية السريع */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSebhaInitialIndex(0);
+                  setIsSebhaOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/80 text-xs font-bold hover:bg-amber-100 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <span>📿 فتح السبحة</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsEidModalOpen(true)}
+                className="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer"
+                title="سنن وآداب الأعياد"
+              >
+                <span>🎉 الأعياد</span>
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-2.5">
+          {/* تنبيهات مواقيت الأذكار المستحبة */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/50 flex items-center gap-2.5">
+              <span className="text-lg">🌅</span>
+              <div>
+                <span className="font-bold text-amber-900 dark:text-amber-200 block">أذكار الصباح:</span>
+                <span className="text-[11px] text-amber-800 dark:text-amber-300">يُستحب قراءتها بعد الفجر وقبل شروق الشمس بنصف ساعة</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/50 flex items-center gap-2.5">
+              <span className="text-lg">🌇</span>
+              <div>
+                <span className="font-bold text-amber-900 dark:text-amber-200 block">أذكار المساء:</span>
+                <span className="text-[11px] text-amber-800 dark:text-amber-300">يُستحب قراءتها بعد العصر وقبل غروب الشمس (المغرب) بنصف ساعة</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2.5 pt-1">
             {uniqueAdhkar.map((adhkarItem) => (
               <div
                 key={adhkarItem.id}
@@ -714,7 +930,17 @@ export const HabitList: React.FC<HabitListProps> = ({
         </section>
       )}
 
-      {/* ----------------- د. قسم صيام التطوع ----------------- */}
+      {/* ----------------- هـ. قسم سنن وبركات يوم الجمعة ----------------- */}
+      {activeHub === 'friday' && (
+        <FridayHubCard
+          onOpenSebhaWithSalawat={() => {
+            setSebhaInitialIndex(0);
+            setIsSebhaOpen(true);
+          }}
+        />
+      )}
+
+      {/* ----------------- و. قسم صيام التطوع ----------------- */}
       {activeHub === 'fasting' && (
         <section className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/80 dark:border-slate-800 p-5 sm:p-7 shadow-xs space-y-4 animate-in fade-in duration-200">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
@@ -788,87 +1014,24 @@ export const HabitList: React.FC<HabitListProps> = ({
             ))}
           </div>
 
-          <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed text-center">
+          <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed text-center font-serif">
             «مَنْ صَامَ يَوْمًا فِي سَبِيلِ اللَّهِ بَعَّدَ اللَّهُ وَجْهَهُ عَنِ النَّارِ سَبْعِينَ خَرِيفًا»
           </div>
         </section>
       )}
 
-      {/* ----------------- هـ. العادات المخصصة الإضافية إن وجدت ----------------- */}
-      {customHabits.length > 0 && (
-        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
-            <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-              <span>✨</span>
-              <span>عاداتي الإضافية المخصصة</span>
-            </h3>
-            {onAddHabitClick && (
-              <button
-                type="button"
-                onClick={onAddHabitClick}
-                className="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>إضافة عادة</span>
-              </button>
-            )}
-          </div>
+      {/* نافذة السبحة الإلكترونية المتطورة */}
+      <SebhaModal
+        isOpen={isSebhaOpen}
+        onClose={() => setIsSebhaOpen(false)}
+        initialDhikrIndex={sebhaInitialIndex}
+      />
 
-          <div className="space-y-2">
-            {customHabits.map((ch) => (
-              <div
-                key={ch.id}
-                onClick={() => onToggleHabit(ch.id)}
-                className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all cursor-pointer ${
-                  ch.completed
-                    ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 text-gray-800 dark:text-gray-200'
-                    : 'bg-slate-50 dark:bg-slate-800/40 border-gray-200 dark:border-slate-800'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={ch.completed}
-                    aria-label={ch.title}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleHabit(ch.id);
-                    }}
-                    className={`w-5 h-5 rounded-lg flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
-                      ch.completed
-                        ? 'bg-emerald-600 border-emerald-600 text-white'
-                        : 'border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800'
-                    }`}
-                  >
-                    {ch.completed && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-                  </button>
-                  <span
-                    className={`text-xs sm:text-sm font-semibold truncate ${
-                      ch.completed ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'
-                    }`}
-                  >
-                    {ch.title}
-                  </span>
-                </div>
-
-                {onDeleteHabit && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteHabit(ch.id);
-                    }}
-                    className="p-1 rounded-lg text-gray-400 hover:text-rose-500 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* نافذة سنن الأعياد والمناسبات */}
+      <EidSunanModal
+        isOpen={isEidModalOpen}
+        onClose={() => setIsEidModalOpen(false)}
+      />
     </div>
   );
 };
