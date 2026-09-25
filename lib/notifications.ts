@@ -363,7 +363,7 @@ export async function sendTestNotification(type:
       const hadith = getTodayHadith();
       return sendDeviceNotification(`📜 حديث اليوم النبوي الشريف | ${hadith.topic}`, {
         body: `${hadith.text} — عن ${hadith.narrator} (${hadith.source})`,
-        url: '/',
+        url: '/adhkar',
         tag: 'mueen-daily-hadith',
       });
     }

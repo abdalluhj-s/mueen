@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from '../../components/Header';
+import { HadithDailyCard } from '../../components/HadithDailyCard';
 import { ADHKAR_CATEGORIES, ADHKAR_DATA, DhikrItem } from '../../data/adhkar';
 import { 
   Sun, Moon, Compass, Bed, Sunrise, Sparkles, 
@@ -9,16 +10,24 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../../lib/translations';
 
 function AdhkarContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || 'morning';
 
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   // مخزن لعدد التكرارات المتبقية لكل ذكر { [id]: remainingCount }
   const [counts, setCounts] = useState<Record<string, number>>({});
   // مخزن الأذكار المكتملة { [id]: boolean }
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
 
   // استرجاع التقدم أو التهيئة عند تغيير القسم
   useEffect(() => {
@@ -123,7 +132,7 @@ function AdhkarContent() {
   const currentCategoryInfo = ADHKAR_CATEGORIES.find((c) => c.id === activeCategory);
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200 pb-16">
+    <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200 pb-16">
       <Header userStreak={9} />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -133,15 +142,15 @@ function AdhkarContent() {
           <div>
             <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mb-1">
               <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                الرئيسية
+                {t('home', lang)}
               </Link>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <span>حصن المسلم</span>
+              <ChevronRight className={`w-3.5 h-3.5 ${lang === 'en' ? 'rotate-180' : ''}`} />
+              <span>{t('adhkar', lang)}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <span>أذكار المسلم والورد اليومي</span>
+              <span>{lang === 'ar' ? 'أذكار المسلم والورد اليومي' : 'Daily Adhkar & Remembrance'}</span>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                عداد تفاعلي
+                {lang === 'ar' ? 'عداد تفاعلي' : 'Interactive'}
               </span>
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -155,9 +164,12 @@ function AdhkarContent() {
             className="self-start sm:self-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>إعادة تعيين الورد</span>
+            <span>{lang === 'ar' ? 'إعادة تعيين الورد' : 'Reset Category'}</span>
           </button>
         </div>
+
+        {/* بطاقة حديث اليوم النبوي الشريف داخل صفحة الأذكار */}
+        <HadithDailyCard />
 
         {/* شريط الأقسام (Tabs) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">

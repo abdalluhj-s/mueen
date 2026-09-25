@@ -26,6 +26,7 @@ import { HabitItem } from '../types/dashboard';
 import { FridayHubCard } from './FridayHubCard';
 import { SebhaModal } from './SebhaModal';
 import { EidSunanModal } from './EidSunanModal';
+import { HadithDailyCard } from './HadithDailyCard';
 import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 interface HabitListProps {
@@ -852,6 +853,9 @@ export const HabitList: React.FC<HabitListProps> = ({
               </button>
             </div>
           </div>
+
+          {/* بطاقة حديث اليوم النبوي الشريف داخل قسم الأذكار */}
+          <HadithDailyCard />
 
           {/* تنبيهات مواقيت الأذكار المستحبة */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">

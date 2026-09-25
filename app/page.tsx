@@ -4,7 +4,6 @@ import React, { useState, useTransition, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { DailyProgressCard } from '../components/DailyProgressCard';
 import { HabitList } from '../components/HabitList';
-import { HadithDailyCard } from '../components/HadithDailyCard';
 import { PartnerCard } from '../components/PartnerCard';
 import { PartnerInviteModal } from '../components/PartnerInviteModal';
 import { AddHabitModal } from '../components/AddHabitModal';
@@ -12,7 +11,7 @@ import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
 import { toggleHabitCompletion, fetchPartnerProgress, fetchAllPartnersProgress, getUserRealStreak } from './actions/habits';
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
 import { createClient } from '../lib/supabase/client';
-import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Bell, Calendar as CalendarIcon } from 'lucide-react';
+import { Quote, Sparkles, UserPlus, LogIn, X, CheckCircle, Settings, ChevronLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { 
   getCountryDateTime, 
   getSavedCountryId, 
@@ -281,11 +280,8 @@ export default function DashboardPage() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* العمود الرئيسي: بطاقة الحديث النبوي وقائمة أوراد وعادات اليوم */}
+          {/* العمود الرئيسي: قائمة أوراد وعادات اليوم */}
           <section className="lg:col-span-2 space-y-6">
-            {/* بطاقة حديث اليوم النبوي الشريف */}
-            <HadithDailyCard />
-
             <HabitList
               habits={habits}
               onToggleHabit={handleToggleHabit}
@@ -329,8 +325,46 @@ export default function DashboardPage() {
                 «من صام يوماً في سبيل الله بعد الله وجهه عن النار سبعين خريفاً»
               </p>
             </div>
+
+            {/* بطاقة الوصول لصفحة الإعدادات والتخصيص */}
+            <Link
+              href="/settings"
+              className="group flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 shadow-xs hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center justify-center group-hover:rotate-45 transition-transform duration-300 shrink-0">
+                  <Settings className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    {t('settingsTitle', lang)}
+                  </div>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    {lang === 'ar' ? 'الألوان، التوقيت، وإشعارات الهاتف' : 'Colors, timezone & phone alerts'}
+                  </p>
+                </div>
+              </div>
+              <ChevronLeft className={`w-4 h-4 text-gray-400 group-hover:text-emerald-600 transition-transform ${lang === 'en' ? 'rotate-180' : ''}`} />
+            </Link>
           </aside>
         </div>
+
+        {/* تذييل الصفحة الأنيق */}
+        <footer className="mt-10 pt-6 border-t border-gray-200/60 dark:border-slate-800/80 text-center text-xs text-gray-400 dark:text-gray-500 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          <span>{lang === 'ar' ? 'منصة مُعين © شريك الالتزام بالطاعات' : 'Mueen Platform © Spiritual Habit Partner'}</span>
+          <span>•</span>
+          <Link href="/settings" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium">
+            ⚙️ {t('settings', lang)}
+          </Link>
+          <span>•</span>
+          <Link href="/adhkar" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium">
+            📿 {t('adhkar', lang)}
+          </Link>
+          <span>•</span>
+          <Link href="/quran" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium">
+            📖 {t('quran', lang)}
+          </Link>
+        </footer>
       </main>
 
       {/* نافذة دعوة أو ربط الشريك (Modal) */}
