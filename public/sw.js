@@ -8,6 +8,24 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// التعامل مع رسائل الصفحة المباشرة لعرض الإشعارات بأمان
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, options } = event.data;
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body: options.body || '',
+        icon: options.icon || '/logo.jpg',
+        badge: '/icons/icon-192.svg',
+        vibrate: [250, 100, 250],
+        tag: options.tag || 'mueen-msg',
+        renotify: true,
+        data: options.data || { url: '/' },
+      })
+    );
+  }
+});
+
 // التعامل مع إشعارات Push الخارجية
 self.addEventListener('push', (event) => {
   let title = 'مُعين | رفيق الالتزام';
@@ -15,7 +33,7 @@ self.addEventListener('push', (event) => {
     body: 'لا تنسَ وردك اليومي وتثبيت عاداتك في مُعين',
     icon: '/logo.jpg',
     badge: '/icons/icon-192.svg',
-    vibrate: [200, 100, 200],
+    vibrate: [250, 100, 250],
     tag: 'mueen-alert',
     renotify: true,
     data: { url: '/' }

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Flame, Bell, BellRing, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked, Settings, Download, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Flame, Bell, BellRing, User, LogIn, LogOut, CheckCheck, ShieldCheck, HeartHandshake, Calendar, Sun, Moon, BookMarked, Settings, Download, CheckCircle2, Languages } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '../lib/supabase/client';
 import { ProfileEditModal } from './ProfileEditModal';
 import { InstallAppModal } from './InstallAppModal';
+import { getSavedLanguage, saveLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 interface HeaderProps {
   userStreak?: number;
@@ -56,12 +57,19 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
 
   // حالة تثبيت التطبيق PWA
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+
+  const toggleLanguage = () => {
+    const nextLang = lang === 'ar' ? 'en' : 'ar';
+    setLang(nextLang);
+    saveLanguage(nextLang);
+  };
 
   const bellRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -95,10 +103,16 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
         setDeferredPrompt(e);
       };
 
+      const handleLangChange = (e: any) => {
+        setLang(e?.detail?.lang || getSavedLanguage());
+      };
+
       window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLangChange);
 
       return () => {
         window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+        window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLangChange);
       };
     }
   }, []);
@@ -332,6 +346,18 @@ export const Header: React.FC<HeaderProps> = ({ userStreak = 9 }) => {
             ) : (
               <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 animate-in spin-in-180 duration-200" />
             )}
+          </button>
+
+          {/* زر تبديل اللغة السريع (عربي / EN) */}
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            title={lang === 'ar' ? 'Switch to English' : 'التحويل للعربية'}
+            aria-label="تبديل اللغة"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer shrink-0"
+          >
+            <Languages className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>{lang === 'ar' ? 'EN' : 'عربي'}</span>
           </button>
 
           {/* زر الإعدادات والتخصيص */}

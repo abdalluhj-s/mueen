@@ -20,7 +20,10 @@ import {
   ArrowRight, 
   Globe,
   Sliders,
-  Info
+  Info,
+  ChevronDown,
+  Languages,
+  BellRing
 } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { createClient } from '../../lib/supabase/client';
@@ -38,12 +41,37 @@ import {
   saveHijriAdjustment, 
   getCountryDateTime 
 } from '../../lib/timeSettings';
+import { 
+  getSavedLanguage, 
+  saveLanguage, 
+  Language, 
+  LANGUAGE_CHANGE_EVENT, 
+  t 
+} from '../../lib/translations';
 
 export default function SettingsPage() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+
+  // لغة التطبيق
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+
+  // حالات طي وفتح الأقسام (Collapsible Accordions)
+  const [openSections, setOpenSections] = useState({
+    language: true,
+    colors: true,
+    fontSize: false,
+    country: false,
+    notifications: true,
+    install: false,
+    account: false,
+  });
+
+  const toggleSection = (key: keyof typeof openSections) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // إعدادات المظهر واللون
   const [activeTheme, setActiveTheme] = useState<string>('emerald');
@@ -72,6 +100,11 @@ export default function SettingsPage() {
   // تحميل الإعدادات عند البدء
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const currentLang = getSavedLanguage();
+      setLang(currentLang);
+      document.documentElement.setAttribute('lang', currentLang);
+      document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+
       // 1. اللون
       const savedTheme = getSavedColorTheme();
       setActiveTheme(savedTheme);
@@ -99,56 +132,52 @@ export default function SettingsPage() {
       const ua = window.navigator.userAgent.toLowerCase();
       setIsIOS(/iphone|ipad|ipod/.test(ua));
 
-      const handleBeforeInstall = (e: Event) => {
+      // جلب المستخدم الحالي
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        setCurrentUser(user);
+        setIsAuthLoading(false);
+      });
+
+      const handleBeforeInstallPrompt = (e: any) => {
         e.preventDefault();
         setDeferredPrompt(e);
       };
-      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-      // الصورة المحلية
-      const savedAvatar = localStorage.getItem('mueen_user_avatar');
-      if (savedAvatar) setLocalAvatar(savedAvatar);
+      const handleLangChange = (e: any) => {
+        setLang(e?.detail?.lang || getSavedLanguage());
+      };
+      window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLangChange);
 
       return () => {
-        window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLangChange);
       };
     }
   }, []);
 
-  // تحديث الساعة الرقمية الحية كل ثانية
+  // تحديث الساعة والتاريخ
   useEffect(() => {
-    const updateClock = () => {
-      const data = getCountryDateTime(selectedCountryId, hijriAdjustment);
+    const updateTime = () => {
+      const info = getCountryDateTime(selectedCountryId, hijriAdjustment);
       setCurrentTimeData({
-        timeString: data.timeString,
-        gregorianDate: data.gregorianDate,
-        hijriDate: data.hijriDate,
+        timeString: info.timeString,
+        gregorianDate: info.gregorianDate,
+        hijriDate: info.hijriDate,
       });
     };
 
-    updateClock();
-    const timer = setInterval(updateClock, 1000);
-    return () => clearInterval(timer);
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, [selectedCountryId, hijriAdjustment]);
 
-  // جلب المستخدم
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setCurrentUser(user);
-      setIsAuthLoading(false);
-    }).catch(() => {
-      setIsAuthLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  // تغيير اللغة
+  const handleLanguageChange = (newLang: Language) => {
+    setLang(newLang);
+    saveLanguage(newLang);
+  };
 
   // تغيير اللون
   const handleColorChange = (themeId: string) => {
@@ -202,32 +231,34 @@ export default function SettingsPage() {
     }
   };
 
-  const userName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'ضيف مُعين';
+  const userName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || t('guestUser', lang);
   const userAvatar = localAvatar || currentUser?.user_metadata?.avatar_url;
+  const currentThemeObj = COLOR_THEMES.find((t) => t.id === activeTheme) || COLOR_THEMES[0];
+  const currentCountryObj = SUPPORTED_COUNTRIES.find((c) => c.id === selectedCountryId) || SUPPORTED_COUNTRIES[0];
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans transition-colors duration-200">
       <Header />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         {/* ترويسة الصفحة */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200/80 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 font-bold mb-1">
               <Link href="/" className="hover:underline flex items-center gap-1">
-                <span>الرئيسية</span>
+                <span>{t('home', lang)}</span>
               </Link>
               <span>/</span>
-              <span>الإعدادات</span>
+              <span>{t('settings', lang)}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2.5">
               <span className="p-2 rounded-2xl bg-emerald-100/80 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
-                <Settings className="w-6 h-6 animate-spin-slow" />
+                <Settings className="w-6 h-6" />
               </span>
-              إعدادات التطبيق والتخصيص
+              {t('settingsTitle', lang)}
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-              خصص مظهر المنصة، وألوانها، والتوقيت حسب دولتك، وأدر حسابك وسجلك بسهولة
+              {t('settingsSubtitle', lang)}
             </p>
           </div>
 
@@ -235,434 +266,566 @@ export default function SettingsPage() {
             href="/"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-2xs self-start sm:self-center"
           >
-            <span>العودة للرئيسية</span>
-            <ArrowRight className="w-4 h-4 rotate-180" />
+            <span>{t('backToHome', lang)}</span>
+            <ArrowRight className={`w-4 h-4 ${lang === 'ar' ? 'rotate-180' : ''}`} />
           </Link>
         </div>
 
-        {/* ================= 1. قسم الحساب وتسجيل الدخول ================= */}
-        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-200/70 dark:border-slate-800 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <User className="w-4 h-4" />
+        {/* ================= 1. قسم اختيار اللغة (Language Selection) [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('language')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Languages className="w-5 h-5" />
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                إدارة الحساب والمزامنة
-              </h2>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('selectLanguage', lang)}
+                  </h2>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
+                    {lang === 'ar' ? 'العربية 🇪🇬' : 'English 🇬🇧'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {t('languageDesc', lang)}
+                </p>
+              </div>
             </div>
-            {currentUser && (
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                سحابي نشط
-              </span>
-            )}
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.language ? 'rotate-180' : ''}`} />
           </div>
 
-          {!isAuthLoading && (
-            currentUser ? (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 border-2 border-emerald-400/40 flex items-center justify-center text-emerald-800 dark:text-emerald-200 font-black text-xl overflow-hidden shadow-xs">
-                      {userAvatar ? (
-                        <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
-                      ) : (
-                        userName.charAt(0)
-                      )}
-                    </div>
-                  </div>
+          {openSections.language && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3.5 animate-in fade-in duration-200">
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('ar')}
+                className={`p-4 rounded-2xl border text-right transition-all flex items-center justify-between cursor-pointer ${
+                  lang === 'ar'
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'bg-gray-50/70 dark:bg-slate-800/40 border-gray-200 dark:border-slate-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🇪🇬</span>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base">
-                      {userName}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {currentUser.email}
-                    </p>
-                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium flex items-center gap-1">
-                      <span>✓ بياناتك وأورادك وسجلك الشهري محفوظة سحابياً</span>
-                    </p>
+                    <div className="font-bold text-sm text-gray-900 dark:text-white">العربية (Arabic)</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">تخطيط أصيل من اليمين لليسار (RTL)</div>
                   </div>
                 </div>
+                {lang === 'ar' && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
+              </button>
 
-                <div className="flex items-center gap-2.5 self-start sm:self-center">
-                  <button
-                    type="button"
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors shadow-2xs cursor-pointer"
-                  >
-                    تعديل الاسم والصورة
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40 text-xs font-bold text-rose-600 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>تسجيل الخروج</span>
-                  </button>
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('en')}
+                className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                  lang === 'en'
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'bg-gray-50/70 dark:bg-slate-800/40 border-gray-200 dark:border-slate-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🇬🇧</span>
+                  <div>
+                    <div className="font-bold text-sm text-gray-900 dark:text-white">English (الإنجليزية)</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Full English Translation & LTR layout</div>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/70 dark:bg-emerald-950/30 p-5 rounded-2xl border border-emerald-200/70 dark:border-emerald-800/60">
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm sm:text-base text-emerald-950 dark:text-emerald-100">
-                    أنت تتصفح المنصة حالياً كـ «ضيف» 📱
-                  </h3>
-                  <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed max-w-xl">
-                    إنجازاتك اليومية تُحفظ على جهازك الحالي فقط. سجّل الدخول مجاناً لحفظ سجلك الشهري ومزامنة عاداتك عبر أجهزتك ومشاركتها مع رفيقك.
-                  </p>
-                </div>
-                <Link
-                  href="/login"
-                  className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-700/20 transition-all flex items-center gap-2 shrink-0 self-start sm:self-center"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>تسجيل الدخول / إنشاء حساب</span>
-                </Link>
-              </div>
-            )
+                {lang === 'en' && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
+              </button>
+            </div>
           )}
         </section>
 
-        {/* ================= 2. قسم ألوان مظهر التطبيق (Color Theme) ================= */}
-        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-200/70 dark:border-slate-800 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Palette className="w-4 h-4" />
+        {/* ================= 2. قسم ألوان المنصة (Color Themes) [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('colors')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Palette className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                  ألوان المنصة والتطبيق
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('colorThemes', lang)}
+                  </h2>
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs font-bold">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: currentThemeObj.colorHex }} />
+                    <span>{currentThemeObj.name}</span>
+                  </div>
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  اختر اللون الذي يريح عينيك ويمنحك الطمأنينة أثناء القراءة والمتابعة
+                  {lang === 'en' ? 'Choose the visual palette that brings peace to your eyes.' : 'اختر اللون الذي يريح عينيك ويمنحك الطمأنينة أثناء القراءة والمتابعة'}
                 </p>
               </div>
             </div>
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.colors ? 'rotate-180' : ''}`} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {COLOR_THEMES.map((theme) => {
-              const isSelected = activeTheme === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  type="button"
-                  onClick={() => handleColorChange(theme.id)}
-                  className={`p-4 rounded-2xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 relative overflow-hidden group ${
-                    isSelected
-                      ? 'bg-emerald-50/50 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
-                      : 'bg-slate-50/70 dark:bg-slate-800/40 border-gray-200/70 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className="w-5 h-5 rounded-full shadow-inner border border-white/40 shrink-0"
-                        style={{ backgroundColor: theme.colorHex }}
-                      />
-                      <span className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
-                        {theme.name}
-                      </span>
+          {openSections.colors && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 animate-in fade-in duration-200">
+              {COLOR_THEMES.map((theme) => {
+                const isSelected = activeTheme === theme.id;
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    onClick={() => handleColorChange(theme.id)}
+                    className={`p-4 rounded-2xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-3 relative overflow-hidden group ${
+                      isSelected
+                        ? 'bg-emerald-50/50 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'bg-slate-50/70 dark:bg-slate-800/40 border-gray-200/70 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-5 h-5 rounded-full shadow-inner border border-white/40 shrink-0"
+                          style={{ backgroundColor: theme.colorHex }}
+                        />
+                        <span className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
+                          {theme.name}
+                        </span>
+                      </div>
+                      {isSelected && (
+                        <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                          <CheckCircle2 className="w-3 h-3" />
+                          {t('completed', lang)}
+                        </span>
+                      )}
                     </div>
-                    {isSelected && (
-                      <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-                        <CheckCircle2 className="w-3 h-3" />
-                        المفعل
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                    {theme.subtitle}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                      {theme.subtitle}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
 
-        {/* ================= 3. قسم الدولة والتوقيت وضبط التاريخ الهجري ================= */}
-        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-200/70 dark:border-slate-800 space-y-6">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Clock className="w-4 h-4" />
+        {/* ================= 3. قسم حجم الخط والوضع الليلي (Font Size & Night Mode) [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('fontSize')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Type className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                  الدولة والتوقيت والتاريخ الهجري
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  حدد دولتك لضبط مواعيد أورادك وساعتك، واضبط التاريخ الهجري ليطابق رؤية الهلال
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* لوحة العرض الحية للتوقيت والتاريخ */}
-          <div className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 text-white p-5 rounded-2xl shadow-md space-y-3 relative overflow-hidden">
-            <div className="absolute -top-10 -left-10 w-36 h-36 bg-white/5 rounded-full blur-xl pointer-events-none" />
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
-              <div>
-                <div className="text-xs text-emerald-200 font-semibold flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>
-                    توقيت: {SUPPORTED_COUNTRIES.find((c) => c.id === selectedCountryId)?.flag}{' '}
-                    {SUPPORTED_COUNTRIES.find((c) => c.id === selectedCountryId)?.name}
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('fontSizeHeading', lang)}
+                  </h2>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700">
+                    {fontSize === 'sm' ? 'خط صغير (أ-)' : fontSize === 'lg' ? 'خط كبير (أ+)' : 'خط قياسي (أ)'} • {isDarkMode ? 'الوضع الليلي 🌙' : 'الوضع النهاري ☀️'}
                   </span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black tracking-tight mt-1">
-                  {currentTimeData.timeString || 'جاري حساب الوقت...'}
-                </div>
-              </div>
-
-              <div className="text-right sm:text-left bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 self-start sm:self-center">
-                <div className="text-xs sm:text-sm font-bold text-amber-200">
-                  {currentTimeData.hijriDate}
-                </div>
-                <div className="text-[11px] text-emerald-100/90 mt-0.5">
-                  {currentTimeData.gregorianDate}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* قائمة اختيار الدولة */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
-              اختر دولتك أو مدينتك لتحديد التوقيت:
-            </label>
-            <div className="relative">
-              <select
-                value={selectedCountryId}
-                onChange={(e) => handleCountryChange(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
-              >
-                {SUPPORTED_COUNTRIES.map((c) => (
-                  <option key={c.id} value={c.id} className="dark:bg-slate-900">
-                    {c.flag} {c.name} — ({c.city})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* ضبط التاريخ الهجري (تقديم أو تأخير) */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
-                  ضبط مطابقة التاريخ الهجري (تقويم أم القرى والرؤية المحلية):
-                </label>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                  نظراً لاختلاف ثبوت رؤية الهلال من دولة لأخرى، يمكنك تقديم أو تأخير التاريخ الهجري ليطابق رؤية الهلال في بلدك:
-                </p>
-              </div>
-              <span className="text-xs font-black px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 shrink-0">
-                {hijriAdjustment === 0
-                  ? 'تطابق تلقائي'
-                  : hijriAdjustment > 0
-                  ? `+${hijriAdjustment} يوم`
-                  : `${hijriAdjustment} يوم`}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-              {[-2, -1, 0, 1, 2].map((days) => (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() => handleHijriAdjustmentChange(days)}
-                  className={`py-2 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                    hijriAdjustment === days
-                      ? 'bg-emerald-600 text-white shadow-xs scale-102'
-                      : 'bg-slate-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {days === 0 ? 'تلقائي (0)' : days > 0 ? `+${days} يوم` : `${days} يوم`}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ================= 4. قسم حجم الخط والوضع الليلي ================= */}
-        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-200/70 dark:border-slate-800 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Type className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                  حجم الخط ونمط العرض
-                </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  تحكم بحجم نصوص الأوراد والمصحف والأذكار والوضع الليلي لراحة عينيك
+                  {lang === 'en' ? 'Control app font scale and dark/light mode for eye comfort.' : 'تحكم بحجم نصوص الأوراد والمصحف والأذكار والوضع الليلي لراحة عينيك'}
                 </p>
               </div>
             </div>
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.fontSize ? 'rotate-180' : ''}`} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* مقياس حجم الخط */}
-            <div className="space-y-2.5">
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                حجم الخط العام:
-              </span>
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200/80 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => handleFontChange('sm')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    fontSize === 'sm'
-                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs font-extrabold'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  صغير (أ-)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleFontChange('md')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    fontSize === 'md'
-                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs font-extrabold'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  قياسي (أ)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleFontChange('lg')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    fontSize === 'lg'
-                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs font-extrabold'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  كبير (أ+)
-                </button>
-              </div>
-
-              {/* معاينة حية للنص */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-800 text-center">
-                <span className="font-quran text-gray-800 dark:text-gray-200">
-                  «سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ، سُبْحَانَ اللَّهِ الْعَظِيمِ»
+          {openSections.fontSize && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in fade-in duration-200">
+              {/* مقياس حجم الخط */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                  {lang === 'en' ? 'General Font Scale:' : 'حجم الخط العام:'}
                 </span>
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200/80 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => handleFontChange('sm')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      fontSize === 'sm'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs font-extrabold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:white'
+                    }`}
+                  >
+                    صغير (A-)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFontChange('md')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      fontSize === 'md'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs font-extrabold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:white'
+                    }`}
+                  >
+                    قياسي (A)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFontChange('lg')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      fontSize === 'lg'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs font-extrabold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:white'
+                    }`}
+                  >
+                    كبير (A+)
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* الوضع الليلي / النهاري */}
-            <div className="space-y-2.5">
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                مظهر الشاشة:
-              </span>
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200/80 dark:border-slate-700">
+              {/* تبديل الوضع الليلي والنهاري */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                  {lang === 'en' ? 'Dark / Light Mode:' : 'الوضع الليلي والنهاري:'}
+                </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (isDarkMode) handleThemeModeToggle();
-                  }}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    !isDarkMode
-                      ? 'bg-white text-emerald-800 shadow-2xs font-black'
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}
+                  onClick={handleThemeModeToggle}
+                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-gray-200/80 dark:border-slate-700 hover:border-emerald-500 transition-all cursor-pointer"
                 >
-                  <Sun className="w-3.5 h-3.5 text-amber-500" />
-                  <span>الوضع النهاري</span>
+                  <div className="flex items-center gap-2.5">
+                    {isDarkMode ? (
+                      <Moon className="w-5 h-5 text-indigo-400" />
+                    ) : (
+                      <Sun className="w-5 h-5 text-amber-500" />
+                    )}
+                    <span className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
+                      {isDarkMode ? 'الوضع الليلي مفعّل (Dark)' : 'الوضع النهاري مفعّل (Light)'}
+                    </span>
+                  </div>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline">
+                    {lang === 'en' ? 'Switch' : 'تبديل النمط'}
+                  </span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isDarkMode) handleThemeModeToggle();
-                  }}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    isDarkMode
-                      ? 'bg-slate-900 text-amber-300 shadow-2xs font-black'
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}
-                >
-                  <Moon className="w-3.5 h-3.5 text-amber-400" />
-                  <span>الوضع الليلي</span>
-                </button>
-              </div>
-
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-800 text-center text-xs text-gray-500 dark:text-gray-400">
-                {isDarkMode ? 'الوضع الليلي مفعّل لحماية العين وتقليل استهلاك البطارية 🌙' : 'الوضع النهاري الواضح للنور والقراءة الساطعة ☀️'}
               </div>
             </div>
-          </div>
+          )}
         </section>
 
-        {/* ================= 4. قسم إشعارات الهاتف وتنبيهات الأوراد ================= */}
-        <section>
-          <NotificationSettingsCard />
-        </section>
-
-        {/* ================= 5. قسم تثبيت التطبيق على الجهاز ================= */}
-        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-200/70 dark:border-slate-800 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Download className="w-4 h-4" />
+        {/* ================= 4. قسم الدولة والتوقيت والتاريخ الهجري [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('country')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Clock className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                  تثبيت التطبيق على جهازك (PWA)
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('countryTimeHeading', lang)}
+                  </h2>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700">
+                    {currentCountryObj.flag} {currentCountryObj.name}
+                  </span>
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  استخدم مُعين كتطبيق أصلي سريع يفتح بملء الشاشة بدون شريط المتصفح
+                  {lang === 'en' ? 'Set your country time and calibrate Hijri date to match your moon sighting.' : 'حدد دولتك لضبط مواعيد أورادك وساعتك، واضبط التاريخ الهجري ليطابق رؤية الهلال'}
                 </p>
               </div>
             </div>
-            {isStandalone && (
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                التطبيق مثبت بالفعل
-              </span>
-            )}
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.country ? 'rotate-180' : ''}`} />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800">
-            <div className="space-y-1">
-              <p className="font-bold text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-                {isStandalone
-                  ? 'أنت تستخدم مُعين حالياً عبر التطبيق المثبت على جهازك 📱'
-                  : 'يمكنك تثبيت مُعين على هاتفك أو كمبيوترك بضغطة زر واحدة 📲'}
-              </p>
-              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
-                يعمل التطبيق على شاشتك الرئيسية كأي تطبيق رسمي مع إمكانية الفتح السريع
-              </p>
+          {openSections.country && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 space-y-5 animate-in fade-in duration-200">
+              {/* لوحة العرض الحية للتوقيت والتاريخ */}
+              <div className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 text-white p-5 rounded-2xl shadow-md space-y-3 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+                  <div>
+                    <div className="text-xs text-emerald-200 font-semibold flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>
+                        توقيت: {currentCountryObj.flag} {currentCountryObj.name}
+                      </span>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black tracking-tight mt-1 font-mono">
+                      {currentTimeData.timeString || '00:00:00'}
+                    </div>
+                  </div>
+
+                  <div className="text-right sm:text-left bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 self-start sm:self-center">
+                    <div className="text-xs sm:text-sm font-bold text-amber-200 font-serif">
+                      {currentTimeData.hijriDate}
+                    </div>
+                    <div className="text-[11px] text-emerald-100/90 mt-0.5">
+                      {currentTimeData.gregorianDate}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* قائمة اختيار الدولة */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  {lang === 'en' ? 'Select Country / City:' : 'اختر دولتك أو مدينتك لتحديد التوقيت:'}
+                </label>
+                <select
+                  value={selectedCountryId}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+                >
+                  {SUPPORTED_COUNTRIES.map((c) => (
+                    <option key={c.id} value={c.id} className="dark:bg-slate-900">
+                      {c.flag} {c.name} — ({c.city})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* معايرة التاريخ الهجري */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                    {lang === 'en' ? 'Calibrate Hijri Date (Local Sighting):' : 'ضبط مطابقة التاريخ الهجري (الرؤية المحلية):'}
+                  </label>
+                  <span className="text-xs font-black px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 shrink-0">
+                    {hijriAdjustment === 0
+                      ? (lang === 'en' ? 'Auto (0)' : 'تطابق تلقائي')
+                      : hijriAdjustment > 0
+                      ? `+${hijriAdjustment} ${lang === 'en' ? 'day' : 'يوم'}`
+                      : `${hijriAdjustment} ${lang === 'en' ? 'day' : 'يوم'}`}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                  {[-2, -1, 0, 1, 2].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => handleHijriAdjustmentChange(days)}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                        hijriAdjustment === days
+                          ? 'bg-emerald-600 text-white shadow-xs scale-102'
+                          : 'bg-slate-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {days === 0 ? '0' : days > 0 ? `+${days}` : `${days}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setIsInstallModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center gap-2 shrink-0 self-start sm:self-center cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>{isStandalone ? 'إرشادات التطبيق' : 'تثبيت التطبيق الآن'}</span>
-            </button>
-          </div>
+          )}
         </section>
 
-        {/* ================= 6. معلومات عن المنصة ================= */}
+        {/* ================= 5. قسم إشعارات الهاتف وتنبيهات الأوراد [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('notifications')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <BellRing className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('notificationsHeading', lang)}
+                  </h2>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
+                    {lang === 'en' ? 'Push & Sound' : 'إشعارات خارجية + نغمة 🔔'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {lang === 'en' ? 'Scheduled alerts for prayers, adhkar, and daily hadith.' : 'تنبيهات مجدولة لأذكار الصباح والمساء والوتر وساعة الجمعة وحديث اليوم'}
+                </p>
+              </div>
+            </div>
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.notifications ? 'rotate-180' : ''}`} />
+          </div>
+
+          {openSections.notifications && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 animate-in fade-in duration-200">
+              <NotificationSettingsCard />
+            </div>
+          )}
+        </section>
+
+        {/* ================= 6. قسم تثبيت التطبيق على الجهاز (PWA) [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('install')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Download className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('pwaHeading', lang)}
+                  </h2>
+                  {isStandalone && (
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      {t('installed', lang)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {lang === 'en' ? 'Fast standalone app experience without browser URL bars.' : 'استخدم مُعين كتطبيق أصلي سريع يفتح بملء الشاشة بدون شريط المتصفح'}
+                </p>
+              </div>
+            </div>
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.install ? 'rotate-180' : ''}`} />
+          </div>
+
+          {openSections.install && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800 animate-in fade-in duration-200">
+              <div className="space-y-1">
+                <p className="font-bold text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                  {isStandalone
+                    ? (lang === 'en' ? 'You are using Mueen via the installed PWA on your device 📱' : 'أنت تستخدم مُعين حالياً عبر التطبيق المثبت على جهازك 📱')
+                    : (lang === 'en' ? 'Install Mueen as a full app on your phone or laptop in 1-click 📲' : 'يمكنك تثبيت مُعين على هاتفك أو كمبيوترك بضغطة زر واحدة 📲')}
+                </p>
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
+                  {lang === 'en' ? 'Works offline, supports full notifications, and launches instantly.' : 'يعمل كأي تطبيق أصلي مع فتح فوري وشاشة كاملة'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsInstallModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center gap-2 shrink-0 self-start sm:self-center cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>{isStandalone ? (lang === 'en' ? 'App Guide' : 'إرشادات التطبيق') : (lang === 'en' ? 'Install Now' : 'تثبيت التطبيق الآن')}</span>
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* ================= 7. قسم الحساب والمزامنة [قابل للطي] ================= */}
+        <section className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-gray-200/70 dark:border-slate-800 transition-all">
+          <div
+            onClick={() => toggleSection('account')}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                    {t('accountHeading', lang)}
+                  </h2>
+                  {currentUser && (
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      {lang === 'en' ? 'Cloud Synced' : 'سحابي نشط'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {userName} {currentUser?.email ? `(${currentUser.email})` : ''}
+                </p>
+              </div>
+            </div>
+
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${openSections.account ? 'rotate-180' : ''}`} />
+          </div>
+
+          {openSections.account && (
+            <div className="pt-5 mt-4 border-t border-gray-100 dark:border-slate-800 animate-in fade-in duration-200">
+              {!isAuthLoading && (
+                currentUser ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 border-2 border-emerald-400/40 flex items-center justify-center text-emerald-800 dark:text-emerald-200 font-black text-xl overflow-hidden shadow-xs shrink-0">
+                        {userAvatar ? (
+                          <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
+                        ) : (
+                          userName.charAt(0)
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                          {userName}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {currentUser.email}
+                        </p>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                          ✓ {lang === 'en' ? 'Your awrad and streaks are synced to Cloudflare & Supabase' : 'بياناتك وأورادك وسجلك الشهري محفوظة سحابياً'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 self-start sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileModalOpen(true)}
+                        className="px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        {lang === 'en' ? 'Edit Profile' : 'تعديل الاسم والصورة'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40 text-xs font-bold text-rose-600 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>{t('signOut', lang)}</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/70 dark:bg-emerald-950/30 p-5 rounded-2xl border border-emerald-200/70 dark:border-emerald-800/60">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-sm sm:text-base text-emerald-950 dark:text-emerald-100">
+                        {lang === 'en' ? 'Browsing as Guest 📱' : 'أنت تتصفح المنصة حالياً كـ «ضيف» 📱'}
+                      </h3>
+                      <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed max-w-xl">
+                        {lang === 'en' ? 'Sign in to sync your deeds across devices and challenge your partner.' : 'إنجازاتك اليومية تُحفظ على جهازك الحالي فقط. سجّل الدخول مجاناً لحفظ سجلك الشهري ومزامنة عاداتك عبر أجهزتك.'}
+                      </p>
+                    </div>
+                    <Link
+                      href="/login"
+                      className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-700/20 transition-all flex items-center gap-2 shrink-0 self-start sm:self-center"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span>{t('signIn', lang)}</span>
+                    </Link>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* ================= تذييل الصفحة ================= */}
         <section className="text-center py-6 border-t border-gray-200/60 dark:border-slate-800/80 space-y-2">
           <div className="flex items-center justify-center gap-2">
             <div className="w-7 h-7 rounded-xl overflow-hidden shadow-2xs border border-emerald-500/30">
-              <img src="/logo.jpg" alt="شعار مُعين" className="w-full h-full object-cover" />
+              <img src="/logo.jpg" alt="Mueen Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-black text-sm text-gray-900 dark:text-white">
-              منصة وتطبيق مُعين • الإصدار 1.2.0
+              {t('appName', lang)} • {t('appTagline', lang)}
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            «مُعين» رفيقك اليومي لتثبيت العادات الدينية ورفيق الالتزام • جعله الله عملاً خالصاً لوجهه الكريم
+            «مُعين» • جعله الله عملاً خالصاً لوجهه الكريم
           </p>
         </section>
       </main>

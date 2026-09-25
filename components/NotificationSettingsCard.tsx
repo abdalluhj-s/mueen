@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Bell, 
   BellRing, 
-  BellOff, 
   Check, 
   Clock, 
   Send, 
@@ -15,8 +14,10 @@ import {
   BookOpen, 
   CheckCircle2, 
   AlertTriangle,
-  Flame,
-  Volume2
+  Volume2,
+  Wrench,
+  Smartphone,
+  Info
 } from 'lucide-react';
 import { 
   NotificationScheduleConfig, 
@@ -25,15 +26,21 @@ import {
   requestNotificationPermission, 
   getNotificationPermissionStatus,
   sendTestNotification,
-  isNotificationSupported
+  isNotificationSupported,
+  registerServiceWorker,
+  playNotificationChime
 } from '../lib/notifications';
+import { getSavedLanguage, t, Language, LANGUAGE_CHANGE_EVENT } from '../lib/translations';
 
 export const NotificationSettingsCard: React.FC = () => {
   const [config, setConfig] = useState<NotificationScheduleConfig>(() => getSavedNotificationConfig());
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [isRequesting, setIsRequesting] = useState(false);
   const [testSentType, setTestSentType] = useState<string | null>(null);
-  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+  const [isIOS, setIsIOS] = useState(false);
+  const [isFixing, setIsFixing] = useState(false);
 
   useEffect(() => {
     setPermission(getNotificationPermissionStatus());
@@ -41,33 +48,86 @@ export const NotificationSettingsCard: React.FC = () => {
       setConfig(getSavedNotificationConfig());
       setPermission(getNotificationPermissionStatus());
     };
+    const handleLangChange = (e: any) => {
+      setLang(e?.detail?.lang || getSavedLanguage());
+    };
+
+    if (typeof window !== 'undefined') {
+      const ua = window.navigator.userAgent.toLowerCase();
+      setIsIOS(/iphone|ipad|ipod/.test(ua));
+    }
+
     window.addEventListener('mueen_notification_config_changed', handleConfigChange);
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLangChange);
     return () => {
       window.removeEventListener('mueen_notification_config_changed', handleConfigChange);
+      window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLangChange);
     };
   }, []);
 
   const handleEnableMasterToggle = async () => {
-    if (permission !== 'granted') {
-      setIsRequesting(true);
-      const granted = await requestNotificationPermission();
-      setIsRequesting(false);
-      setPermission(getNotificationPermissionStatus());
-      if (granted) {
-        const updated = { ...config, enabled: true };
-        setConfig(updated);
-        saveNotificationConfig(updated);
-        setFeedbackMsg('تم تفعيل إشعارات الهاتف بنجاح! سنرسل لك تذكيراً تجريبياً الآن.');
-        sendTestNotification('morning');
-        setTimeout(() => setFeedbackMsg(null), 4000);
-      } else {
-        setFeedbackMsg('يرجى السماح بالإشعارات من نافذة المتصفح لتفعيل التنبيهات على هاتفك.');
-        setTimeout(() => setFeedbackMsg(null), 5000);
-      }
-    } else {
-      const updated = { ...config, enabled: !config.enabled };
+    setIsRequesting(true);
+    const { granted, status } = await requestNotificationPermission();
+    setIsRequesting(false);
+    setPermission(getNotificationPermissionStatus());
+
+    if (granted) {
+      const updated = { ...config, enabled: true };
       setConfig(updated);
       saveNotificationConfig(updated);
+      playNotificationChime();
+      setFeedbackMsg({
+        type: 'success',
+        text: lang === 'en' 
+          ? 'Phone notifications enabled! Sending a test alert now.' 
+          : 'تم تفعيل إشعارات الهاتف بنجاح! جاري إرسال إشعار تجريبي لهاتفك الآن.',
+      });
+      await sendTestNotification('morning');
+    } else {
+      setFeedbackMsg({
+        type: 'error',
+        text: status === 'denied'
+          ? (lang === 'en' 
+              ? 'Notifications are blocked in your browser settings. Please click the lock icon in the address bar and select "Allow".' 
+              : 'الإشعارات محظورة في إعدادات متصفحك. يرجى الضغط على علامة القفل بجانب الرابط واختيار «السماح بالإشعارات».')
+          : (lang === 'en'
+              ? 'Please grant notification permission when prompted by your browser.'
+              : 'يرجى الموافقة على طلب إذن الإشعارات من نافذة المتصفح لتفعيل التنبيهات.'),
+      });
+    }
+  };
+
+  const handleQuickFixAndTest = async () => {
+    setIsFixing(true);
+    playNotificationChime();
+
+    try {
+      await registerServiceWorker();
+      const { granted, status } = await requestNotificationPermission();
+      setPermission(getNotificationPermissionStatus());
+
+      const result = await sendTestNotification('dailyHadith');
+
+      if (result.deliveredToOS) {
+        setFeedbackMsg({
+          type: 'success',
+          text: lang === 'en'
+            ? 'Success! External alert sent directly to your phone screen and notification tray.'
+            : 'تم بنجاح! خرج الإشعار كرسالة خارجية على شاشة هاتفك وشريط التنبيهات العلوي الآن 🔔',
+        });
+      } else {
+        setFeedbackMsg({
+          type: 'info',
+          text: result.message,
+        });
+      }
+    } catch (err: any) {
+      setFeedbackMsg({
+        type: 'error',
+        text: `خطأ أثناء الفحص: ${err?.message || 'تعذر الإرسال'}`,
+      });
+    } finally {
+      setIsFixing(false);
     }
   };
 
@@ -78,102 +138,160 @@ export const NotificationSettingsCard: React.FC = () => {
   };
 
   const handleTestNotification = async (type: Parameters<typeof sendTestNotification>[0]) => {
-    if (permission !== 'granted') {
-      const granted = await requestNotificationPermission();
-      setPermission(getNotificationPermissionStatus());
-      if (!granted) {
-        alert('يرجى السماح بالإشعارات أولاً لتتمكن من استقبال رسائل التنبيه على هاتفك.');
-        return;
-      }
-    }
     setTestSentType(type);
-    await sendTestNotification(type);
+    const result = await sendTestNotification(type);
+
+    if (result.deliveredToOS) {
+      setFeedbackMsg({
+        type: 'success',
+        text: lang === 'en'
+          ? 'Alert dispatched to your device lockscreen and notification tray! 🔔'
+          : 'خرج الإشعار بنجاح الآن كرسالة خارجية على شاشة هاتفك ودرج الإشعارات 🔔',
+      });
+    } else {
+      setFeedbackMsg({
+        type: 'info',
+        text: result.message,
+      });
+    }
+
     setTimeout(() => setTestSentType(null), 2500);
   };
 
   const isSupported = isNotificationSupported();
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-950 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
-      {/* رأس القسم */}
+    <div className="space-y-6">
+      {/* رأس القسم والتحكم الرئيسي */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-xs">
-            <BellRing className="w-6 h-6 animate-pulse" />
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+              {t('notificationsHeading', lang)}
+            </h3>
+            <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-300/40">
+              {lang === 'en' ? 'Live System Push' : 'إشعارات خارجية 📲'}
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                إشعارات الهاتف وتنبيهات الأوراد
-              </h3>
-              <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-300/40">
-                جديد 📲
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              رسائل خارجية تصل إلى شاشة قفل هاتفك ودرج الإشعارات في مواقيتها الدقيقة
-            </p>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {lang === 'en'
+              ? 'External alerts arrive on your phone lock screen and notification bar at exact prayer times.'
+              : 'رسائل خارجية تصل إلى شاشة قفل هاتفك ودرج الإشعارات في مواقيتها الدقيقة حتى والتطبيق مقفول.'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={handleQuickFixAndTest}
+            disabled={isFixing}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+            title="فحص وإرسال إشعار فوري للتأكد"
+          >
+            <Wrench className={`w-3.5 h-3.5 ${isFixing ? 'animate-spin' : ''}`} />
+            <span>{isFixing ? (lang === 'en' ? 'Testing...' : 'جاري الفحص...') : t('notificationFixButton', lang)}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleEnableMasterToggle}
+            disabled={isRequesting || !isSupported}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-xs cursor-pointer ${
+              config.enabled && permission === 'granted'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                : 'bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
+            }`}
+          >
+            {isRequesting ? (
+              <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : config.enabled && permission === 'granted' ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>{t('notificationsActive', lang)}</span>
+              </>
+            ) : (
+              <>
+                <Bell className="w-4 h-4" />
+                <span>{t('enablePhoneNotifications', lang)}</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* لوحة التشخيص وحالة الجهاز */}
+      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-200/80 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-semibold text-gray-700 dark:text-gray-300">
+              {lang === 'en' ? 'Status:' : 'حالة الإذن:'}
+            </span>
+            <span className={`font-bold px-2 py-0.5 rounded-md ${
+              permission === 'granted'
+                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                : permission === 'denied'
+                ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300'
+                : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+            }`}>
+              {permission === 'granted'
+                ? (lang === 'en' ? 'Allowed ✓' : 'مسموح بها ✓')
+                : permission === 'denied'
+                ? (lang === 'en' ? 'Blocked 🚫' : 'محظورة 🚫')
+                : (lang === 'en' ? 'Pending Permission ⚠️' : 'بانتظار موافقتك ⚠️')}
+            </span>
           </div>
         </div>
 
-        {/* المفتاح الرئيسي العام */}
         <button
           type="button"
-          onClick={handleEnableMasterToggle}
-          disabled={isRequesting || !isSupported}
-          className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-xs cursor-pointer ${
-            config.enabled && permission === 'granted'
-              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-              : 'bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
-          }`}
+          onClick={() => handleTestNotification('dailyHadith')}
+          className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
         >
-          {isRequesting ? (
-            <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          ) : config.enabled && permission === 'granted' ? (
-            <>
-              <Check className="w-4 h-4" />
-              <span>مفعلة على الهاتف</span>
-            </>
-          ) : (
-            <>
-              <Bell className="w-4 h-4" />
-              <span>تفعيل إشعارات الهاتف</span>
-            </>
-          )}
+          <Send className="w-3.5 h-3.5" />
+          <span>{lang === 'en' ? 'Test Notification Now' : 'إرسال إشعار تجريبي فوري'}</span>
         </button>
       </div>
 
-      {/* تنبيه حالة إذن المتصفح */}
-      {!isSupported ? (
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2.5">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-          <span>المتصفح الحالي لا يدعم إشعارات الويب، يرجى استخدام متصفح Chrome أو إضافة التطبيق للشاشة الرئيسية (PWA).</span>
-        </div>
-      ) : permission === 'denied' ? (
-        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2.5">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
-          <span>الإشعارات محظورة في إعدادات المتصفح. اضغط على أيقونة القفل أو الإعدادات بجانب شريط العنوان واختر «السماح بالإشعارات» لتصلك التنبيهات.</span>
-        </div>
-      ) : permission !== 'granted' ? (
-        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Volume2 className="w-4 h-4 shrink-0 text-emerald-600" />
-            <span>اضغط على الزر أعلاه لمنح إذن الإشعارات لتصلك رسائل التذكير على شاشة الموبايل خارج التطبيق.</span>
+      {/* تنبيه أجهزة الآيفون (iOS Safari) */}
+      {isIOS && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-bold">
+              {lang === 'en' ? 'Note for iPhone/iPad users:' : 'تنبيه لمستخدمي الآيفون (iOS):'}
+            </span>
+            <p className="leading-relaxed">
+              {lang === 'en'
+                ? 'Apple iOS requires adding the app to your Home Screen first to enable external push notifications. Tap Share 📤 then "Add to Home Screen".'
+                : 'شركة آبل تشترط إضافة التطبيق إلى «الشاشة الرئيسية» أولاً لتفعيل إشعارات الهاتف الخارجية. اضغط على زر المشاركة 📤 ثم «إضافة إلى الشاشة الرئيسية».'}
+            </p>
           </div>
-        </div>
-      ) : null}
-
-      {feedbackMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-300 text-emerald-900 dark:text-emerald-200 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>{feedbackMsg}</span>
         </div>
       )}
 
-      {/* قائمة التنبيهات الـ 7 التفصيلية المطابقة لطلب المستخدم */}
+      {/* رسالة النتيجة أو الخطأ */}
+      {feedbackMsg && (
+        <div className={`p-4 rounded-2xl border text-xs font-semibold flex items-center gap-2.5 animate-in fade-in ${
+          feedbackMsg.type === 'success'
+            ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-900 dark:text-emerald-200'
+            : feedbackMsg.type === 'error'
+            ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 text-rose-900 dark:text-rose-200'
+            : 'bg-blue-50 dark:bg-blue-950/50 border-blue-300 text-blue-900 dark:text-blue-200'
+        }`}>
+          {feedbackMsg.type === 'success' ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+          )}
+          <span>{feedbackMsg.text}</span>
+        </div>
+      )}
+
+      {/* قائمة التنبيهات الـ 7 التفصيلية */}
       <div className="space-y-4">
         <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-          التنبيهات المجدولة ومواقيتها
+          {lang === 'en' ? 'Scheduled Alerts & Times' : 'التنبيهات المجدولة ومواقيتها'}
         </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -185,8 +303,12 @@ export const NotificationSettingsCard: React.FC = () => {
                   <Sun className="w-4 h-4" />
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">أذكار الصباح</h5>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">قبل شروق الشمس بنصف ساعة</p>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationMorningTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationMorningDesc', lang)}
+                  </p>
                 </div>
               </div>
               <input
@@ -213,7 +335,7 @@ export const NotificationSettingsCard: React.FC = () => {
                 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3" />
-                <span>{testSentType === 'morning' ? 'تم الإرسال ✓' : 'تجربة على الهاتف'}</span>
+                <span>{testSentType === 'morning' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
               </button>
             </div>
           </div>
@@ -226,8 +348,12 @@ export const NotificationSettingsCard: React.FC = () => {
                   <Sun className="w-4 h-4 opacity-75" />
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">أذكار المساء</h5>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">قبل غروب الشمس بنصف ساعة</p>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationEveningTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationEveningDesc', lang)}
+                  </p>
                 </div>
               </div>
               <input
@@ -254,12 +380,12 @@ export const NotificationSettingsCard: React.FC = () => {
                 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3" />
-                <span>{testSentType === 'evening' ? 'تم الإرسال ✓' : 'تجربة على الهاتف'}</span>
+                <span>{testSentType === 'evening' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
               </button>
             </div>
           </div>
 
-          {/* 3. قيام الليل والوتر (الساعة 10 مساءً) */}
+          {/* 3. قيام الليل والوتر */}
           <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 flex flex-col justify-between gap-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -267,8 +393,12 @@ export const NotificationSettingsCard: React.FC = () => {
                   <Moon className="w-4 h-4" />
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">صلاة الوتر وقيام الليل</h5>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">تذكير الساعة 10:00 مساءً</p>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationNightTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationNightDesc', lang)}
+                  </p>
                 </div>
               </div>
               <input
@@ -295,12 +425,12 @@ export const NotificationSettingsCard: React.FC = () => {
                 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3" />
-                <span>{testSentType === 'night' ? 'تم الإرسال ✓' : 'تجربة على الهاتف'}</span>
+                <span>{testSentType === 'night' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
               </button>
             </div>
           </div>
 
-          {/* 4. حديث اليوم النبوي الشريف كإشعار خارجي */}
+          {/* 4. حديث اليوم النبوي الشريف (إشعار خارجي) */}
           <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 flex flex-col justify-between gap-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -308,8 +438,12 @@ export const NotificationSettingsCard: React.FC = () => {
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">حديث اليوم النبوي (إشعار خارجي)</h5>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">يصلك نص الحديث كرسالة على الهاتف صباحاً</p>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationHadithTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationHadithDesc', lang)}
+                  </p>
                 </div>
               </div>
               <input
@@ -336,7 +470,7 @@ export const NotificationSettingsCard: React.FC = () => {
                 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3" />
-                <span>{testSentType === 'dailyHadith' ? 'تم الإرسال ✓' : 'تجربة على الهاتف'}</span>
+                <span>{testSentType === 'dailyHadith' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
               </button>
             </div>
           </div>
@@ -349,8 +483,12 @@ export const NotificationSettingsCard: React.FC = () => {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">الصلاة على النبي ﷺ (الجمعة)</h5>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">تذكير الصباح بيوم الجمعة المبارك</p>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationFridaySalawatTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationFridaySalawatDesc', lang)}
+                  </p>
                 </div>
               </div>
               <input
@@ -377,7 +515,7 @@ export const NotificationSettingsCard: React.FC = () => {
                 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3" />
-                <span>{testSentType === 'fridaySalawat' ? 'تم الإرسال ✓' : 'تجربة على الهاتف'}</span>
+                <span>{testSentType === 'fridaySalawat' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
               </button>
             </div>
           </div>
@@ -390,8 +528,12 @@ export const NotificationSettingsCard: React.FC = () => {
                   <HeartHandshake className="w-4 h-4" />
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">ساعة الاستجابة (عصر الجمعة)</h5>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">آخر ساعة قبل مغرب الجمعة</p>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationFridayHourTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationFridayHourDesc', lang)}
+                  </p>
                 </div>
               </div>
               <input
@@ -418,12 +560,12 @@ export const NotificationSettingsCard: React.FC = () => {
                 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3" />
-                <span>{testSentType === 'fridayHour' ? 'تم الإرسال ✓' : 'تجربة على الهاتف'}</span>
+                <span>{testSentType === 'fridayHour' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
               </button>
             </div>
           </div>
 
-          {/* 7. ختام اليوم: هل أنهيت أوراد اليوم؟ */}
+          {/* 7. ختام اليوم */}
           <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 flex flex-col justify-between gap-3 md:col-span-2">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -431,8 +573,12 @@ export const NotificationSettingsCard: React.FC = () => {
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">ختام اليوم: «هل أنهيت أوراد اليوم؟»</h5>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">تذكير مسائي لتسجيل إنجازك وتثبيت عاداتك في مُعين قبل النوم</p>
+                  <h5 className="font-bold text-sm text-gray-900 dark:text-white">
+                    {t('notificationDailyReviewTitle', lang)}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {t('notificationDailyReviewDesc', lang)}
+                  </p>
                 </div>
               </div>
               <input
@@ -459,7 +605,7 @@ export const NotificationSettingsCard: React.FC = () => {
                 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3" />
-                <span>{testSentType === 'dailyReview' ? 'تم الإرسال ✓' : 'تجربة على الهاتف'}</span>
+                <span>{testSentType === 'dailyReview' ? t('testSent', lang) : t('testOnPhone', lang)}</span>
               </button>
             </div>
           </div>

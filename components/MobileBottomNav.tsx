@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Home, BookMarked, BookOpen, Calendar, User, Download, Sparkles, X, Settings } from 'lucide-react';
 import { createClient } from '../lib/supabase/client';
 import { ProfileEditModal } from './ProfileEditModal';
+import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
 export const MobileBottomNav: React.FC = () => {
   const pathname = usePathname();
@@ -59,34 +60,41 @@ export const MobileBottomNav: React.FC = () => {
   };
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [lang, setLang] = useState<Language>(() => getSavedLanguage());
+
+  useEffect(() => {
+    const handleLang = (e: any) => setLang(e?.detail?.lang || getSavedLanguage());
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
+  }, []);
 
   const navItems = [
     {
-      label: 'الرئيسية',
+      label: t('home', lang),
       href: '/',
       icon: Home,
       isActive: pathname === '/',
     },
     {
-      label: 'الأذكار',
+      label: t('adhkar', lang),
       href: '/adhkar',
       icon: BookMarked,
       isActive: pathname.startsWith('/adhkar'),
     },
     {
-      label: 'المصحف',
+      label: t('quran', lang),
       href: '/quran',
       icon: BookOpen,
       isActive: pathname.startsWith('/quran'),
     },
     {
-      label: 'السجل',
+      label: t('progress', lang),
       href: '/progress',
       icon: Calendar,
       isActive: pathname.startsWith('/progress'),
     },
     {
-      label: 'الإعدادات',
+      label: t('settings', lang),
       href: '/settings',
       icon: Settings,
       isActive: pathname.startsWith('/settings'),
@@ -167,7 +175,7 @@ export const MobileBottomNav: React.FC = () => {
 
       {/* الشريط السفلي الثابت للهاتف (Native Mobile Bottom Bar) */}
       <nav 
-        dir="rtl" 
+        dir={lang === 'ar' ? 'rtl' : 'ltr'} 
         className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200/80 dark:border-slate-800 shadow-lg px-2 py-1.5 transition-colors duration-200 safe-area-pb"
       >
         <div className="flex items-center justify-around">

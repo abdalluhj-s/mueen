@@ -40,6 +40,47 @@ const STORAGE_KEY = 'mueen_notifications_config';
 const LAST_SENT_PREFIX = 'mueen_notif_last_sent_';
 
 /**
+ * تشغيل نغمة تنبيه لطيفة واقعية باستخدام Web Audio API
+ */
+export function playNotificationChime() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    
+    // نغمة مزدوجة هادئة ورنانة
+    const now = ctx.currentTime;
+    
+    // نغمة 1: D5 (587.33 Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    // نغمة 2: A5 (880 Hz)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.12);
+    gain2.gain.setValueAtTime(0.3, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.55);
+  } catch (e) {
+    // Ignored in restricted environments
+  }
+}
+
+/**
  * جلب إعدادات الإشعارات المحفوظة
  */
 export function getSavedNotificationConfig(): NotificationScheduleConfig {
@@ -67,25 +108,29 @@ export function saveNotificationConfig(config: NotificationScheduleConfig) {
  */
 export function isNotificationSupported(): boolean {
   if (typeof window === 'undefined') return false;
-  return 'Notification' in window && 'serviceWorker' in navigator;
+  return 'Notification' in window || 'serviceWorker' in navigator;
 }
 
 /**
  * جلب حالة إذن الإشعارات الحالية
  */
 export function getNotificationPermissionStatus(): NotificationPermission | 'unsupported' {
-  if (!isNotificationSupported()) return 'unsupported';
+  if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
   return Notification.permission;
 }
 
 /**
- * تسجيل Service Worker
+ * تسجيل Service Worker وضمان تفعيله فوراً
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return null;
   }
   try {
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing && existing.active) {
+      return existing;
+    }
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     return reg;
   } catch (err) {
@@ -97,28 +142,36 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 /**
  * طلب الإذن الرسمي من المتصفح / الهاتف لإرسال إشعارات
  */
-export async function requestNotificationPermission(): Promise<boolean> {
-  if (!isNotificationSupported()) {
-    return false;
+export async function requestNotificationPermission(): Promise<{ granted: boolean; status: string }> {
+  if (typeof window === 'undefined') {
+    return { granted: false, status: 'unsupported' };
+  }
+
+  if (!('Notification' in window)) {
+    return { granted: false, status: 'unsupported' };
   }
 
   try {
+    // طلب الإذن الرسمي
     const perm = await Notification.requestPermission();
-    if (perm === 'granted') {
+    const isGranted = perm === 'granted';
+
+    if (isGranted) {
       await registerServiceWorker();
       const current = getSavedNotificationConfig();
       saveNotificationConfig({ ...current, enabled: true });
-      return true;
     }
-    return false;
+
+    return { granted: isGranted, status: perm };
   } catch (err) {
     console.error('خطأ في طلب إذن الإشعارات:', err);
-    return false;
+    return { granted: false, status: 'error' };
   }
 }
 
 /**
- * إرسال إشعار فوري للجهاز عبر Service Worker (يظهر على شاشة القفل ودرج الإشعارات)
+ * إرسال إشعار فوري للجهاز (يظهر على شاشة القفل ودرج الإشعارات)
+ * مع تشغيل نغمة وبانر تفاعلي
  */
 export async function sendDeviceNotification(
   title: string,
@@ -128,16 +181,56 @@ export async function sendDeviceNotification(
     tag?: string;
     icon?: string;
   }
-): Promise<boolean> {
-  if (!isNotificationSupported() || Notification.permission !== 'granted') {
-    return false;
+): Promise<{ success: boolean; deliveredToOS: boolean; message: string }> {
+  if (typeof window === 'undefined') {
+    return { success: false, deliveredToOS: false, message: 'بيئة غير مدعومة' };
+  }
+
+  // 1. تشغيل النغمة الصوتية دائماً لضمان السماع الفوري
+  playNotificationChime();
+
+  // 2. إرسال حدث بانر تفاعلي عائم داخل التطبيق
+  window.dispatchEvent(
+    new CustomEvent('mueen_inapp_toast', {
+      detail: {
+        title,
+        body: options.body,
+        url: options.url || '/',
+      },
+    })
+  );
+
+  // 3. التحقق من إذن النظام
+  if (!('Notification' in window)) {
+    return {
+      success: true,
+      deliveredToOS: false,
+      message: 'تم إظهار التنبيه داخل التطبيق (المتصفح لا يدعم إشعارات النظام الخارجية)',
+    };
+  }
+
+  let currentPermission = Notification.permission;
+
+  if (currentPermission === 'default') {
+    const req = await requestNotificationPermission();
+    currentPermission = req.status as NotificationPermission;
+  }
+
+  if (currentPermission !== 'granted') {
+    return {
+      success: false,
+      deliveredToOS: false,
+      message: currentPermission === 'denied' 
+        ? 'تم حظر الإشعارات في إعدادات المتصفح. اضغط على أيقونة القفل بالسماح.'
+        : 'يرجى الموافقة على إذن الإشعارات لتصلك على شاشة القفل.',
+    };
   }
 
   const notificationOptions = {
     body: options.body,
     icon: options.icon || '/logo.jpg',
     badge: '/icons/icon-192.svg',
-    vibrate: [200, 100, 200],
+    vibrate: [250, 100, 250],
     tag: options.tag || `mueen-notif-${Date.now()}`,
     renotify: true,
     data: {
@@ -145,24 +238,54 @@ export async function sendDeviceNotification(
     },
   };
 
+  let deliveredToOS = false;
+
+  // المحاولة 1: عبر Service Worker Registration المباشر
   try {
-    const reg = await navigator.serviceWorker.ready;
+    let reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) {
+      reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    }
+
     if (reg && 'showNotification' in reg) {
       await reg.showNotification(title, notificationOptions);
-      return true;
+      deliveredToOS = true;
     }
   } catch (swErr) {
-    console.warn('تعذر الإرسال عبر SW، استخدام Notification المباشر كبديل:', swErr);
+    console.warn('تعذر الإرسال المباشر عبر registration، محاولة عبر controller postMessage:', swErr);
   }
 
-  // كبديل احتياطي (Fallback)
-  try {
-    new Notification(title, notificationOptions);
-    return true;
-  } catch (directErr) {
-    console.error('تعذر إظهار الإشعار المباشر:', directErr);
-    return false;
+  // المحاولة 2: عبر controller postMessage
+  if (!deliveredToOS && navigator.serviceWorker?.controller) {
+    try {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SHOW_NOTIFICATION',
+        title,
+        options: notificationOptions,
+      });
+      deliveredToOS = true;
+    } catch (msgErr) {
+      console.warn('تعذر الإرسال عبر postMessage:', msgErr);
+    }
   }
+
+  // المحاولة 3: عبر new Notification() (Desktop fallback)
+  if (!deliveredToOS) {
+    try {
+      new Notification(title, notificationOptions);
+      deliveredToOS = true;
+    } catch (directErr) {
+      console.warn('new Notification غير متاح على هذا الجهاز:', directErr);
+    }
+  }
+
+  return {
+    success: true,
+    deliveredToOS,
+    message: deliveredToOS 
+      ? 'وصلك الإشعار بنجاح الآن على شاشة هاتفك ودرج التنبيهات! 🔔' 
+      : 'تم إظهار التنبيه محلياً بنجاح.',
+  };
 }
 
 /**
@@ -192,7 +315,7 @@ export async function sendTestNotification(type:
   | 'fridayHour' 
   | 'dailyReview' 
   | 'dailyHadith'
-): Promise<boolean> {
+): Promise<{ success: boolean; deliveredToOS: boolean; message: string }> {
   switch (type) {
     case 'morning':
       return sendDeviceNotification('☀️ تذكير أذكار الصباح | مُعين', {
@@ -246,17 +369,16 @@ export async function sendTestNotification(type:
     }
 
     default:
-      return false;
+      return { success: false, deliveredToOS: false, message: 'نوع تنبيه غير معروف' };
   }
 }
 
 /**
  * فاحص الجدولة اليومية التلقائية (Notification Scheduler Tick)
- * يتم استدعاؤه كل دقيقة لمقارنة الوقت المحلي بالوقت المضبوط
  */
 export function checkAndTriggerScheduledNotifications() {
   if (typeof window === 'undefined') return;
-  if (!isNotificationSupported() || Notification.permission !== 'granted') return;
+  if (!isNotificationSupported()) return;
 
   const config = getSavedNotificationConfig();
   if (!config.enabled) return;
@@ -265,7 +387,7 @@ export function checkAndTriggerScheduledNotifications() {
   const currentHours = String(now.getHours()).padStart(2, '0');
   const currentMinutes = String(now.getMinutes()).padStart(2, '0');
   const currentTimeStr = `${currentHours}:${currentMinutes}`;
-  const dayOfWeek = now.getDay(); // 5 = الجمعة (Sunday = 0, Friday = 5)
+  const dayOfWeek = now.getDay(); // 5 = الجمعة (Friday)
 
   // 1. أذكار الصباح
   if (config.morningAdhkar && currentTimeStr === config.morningTime && !hasBeenSentToday('morning')) {
@@ -279,19 +401,19 @@ export function checkAndTriggerScheduledNotifications() {
     markSentToday('evening');
   }
 
-  // 3. قيام الليل والوتر (الساعة 10 مساءً أو الوقت المحدد)
+  // 3. قيام الليل والوتر
   if (config.nightPrayer && currentTimeStr === config.nightTime && !hasBeenSentToday('night')) {
     sendTestNotification('night');
     markSentToday('night');
   }
 
-  // 4. ختام اليوم: هل أنهيت أورادك اليوم؟
+  // 4. ختام اليوم
   if (config.dailyReview && currentTimeStr === config.dailyReviewTime && !hasBeenSentToday('dailyReview')) {
     sendTestNotification('dailyReview');
     markSentToday('dailyReview');
   }
 
-  // 5. حديث اليوم النبوي الشريف كإشعار خارجي صباحي
+  // 5. حديث اليوم النبوي الشريف
   if (config.dailyHadith && currentTimeStr === config.dailyHadithTime && !hasBeenSentToday('dailyHadith')) {
     sendTestNotification('dailyHadith');
     markSentToday('dailyHadith');
