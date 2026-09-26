@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { acceptInviteCode, getInviteDetails } from '../actions/partner';
+import { loginWithEmail, signUpWithEmail } from '../actions/auth';
 import { createClient } from '../../lib/supabase/client';
 
 function JoinPageContent() {
@@ -139,36 +140,21 @@ function JoinPageContent() {
     try {
       setIsAuthLoading(true);
       setAuthError(null);
-      const supabase = createClient();
 
       if (isSignUp) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName || email.split('@')[0],
-            },
-          },
-        });
+        const result = await signUpWithEmail(email, password, fullName);
+        if (!result.success) throw new Error(result.error);
 
-        if (signUpError) throw signUpError;
-
-        if (signUpData.user) {
-          setCurrentUser(signUpData.user);
-          // تأكيد كود الدعوة تلقائياً بعد التسجيل
+        if (result.user) {
+          setCurrentUser(result.user);
           handleAcceptInvite(inviteCode);
         }
       } else {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const result = await loginWithEmail(email, password);
+        if (!result.success) throw new Error(result.error);
 
-        if (signInError) throw signInError;
-
-        if (signInData.user) {
-          setCurrentUser(signInData.user);
+        if (result.user) {
+          setCurrentUser(result.user);
           handleAcceptInvite(inviteCode);
         }
       }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
+import { loginWithEmail, signUpWithEmail } from '../actions/auth';
 import { Sparkles, ShieldCheck, HeartHandshake, Loader2, ArrowRight, Mail, Lock, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 
@@ -49,33 +50,25 @@ function LoginPageContent() {
       setIsLoading(true);
       setError(null);
       setSuccessMsg(null);
-      const supabase = createClient();
 
       if (isSignUp) {
-        // إنشاء حساب جديد
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName || email.split('@')[0],
-            },
-          },
-        });
+        // إنشاء حساب جديد عبر السيرفر
+        const result = await signUpWithEmail(email, password, fullName);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
 
-        if (signUpError) throw signUpError;
         setSuccessMsg('تم إنشاء الحساب بنجاح! جارٍ تسجيل دخولك...');
         setTimeout(() => {
           window.location.href = destination;
         }, 1200);
       } else {
-        // تسجيل الدخول
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        // تسجيل الدخول عبر السيرفر
+        const result = await loginWithEmail(email, password);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
 
-        if (signInError) throw signInError;
         window.location.href = destination;
       }
     } catch (err: any) {
