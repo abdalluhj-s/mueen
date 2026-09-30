@@ -69,6 +69,20 @@ export default function RootLayout({
                   }
                   document.documentElement.setAttribute('lang', lang);
                   document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+
+                  // تنظيف فوري لأي كوكيز قديمة متراكمة لمنع أخطاء 400 (Netlify) و 494 (Vercel) نهائياً
+                  if (typeof document !== 'undefined' && document.cookie) {
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {
+                      var c = cookies[i].trim();
+                      if (c.indexOf('sb-') === 0 || c.indexOf('supabase') !== -1) {
+                        var eqPos = c.indexOf('=');
+                        var name = eqPos > -1 ? c.substr(0, eqPos) : c;
+                        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+                        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
+                      }
+                    }
+                  }
                 } catch (e) {}
               })();
             `,

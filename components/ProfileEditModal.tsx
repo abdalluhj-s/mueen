@@ -123,7 +123,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
       // 2. تحديث جدول profiles
       if (data?.user?.id) {
-        await supabase.from('profiles').upsert({
+        await (supabase.from('profiles') as any).upsert({
           id: data.user.id,
           full_name: name.trim(),
           avatar_url: finalAvatar,

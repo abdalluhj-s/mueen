@@ -26,6 +26,7 @@ import {
   getSurahByPage,
   getJuzByPage,
 } from '../../components/quran/quranMetadata';
+import { QURAN_FALLBACK_PAGES } from '../../data/quranFallbackPages';
 import { QuranPageContent } from '../../components/quran/QuranPageContent';
 import { MushafStandard } from '../../components/quran/MushafStandard';
 import { Mushaf3DDesktop } from '../../components/quran/Mushaf3DDesktop';
@@ -104,6 +105,12 @@ export default function QuranMushafPage() {
         const params = new URLSearchParams(window.location.search);
         const pageParam = params.get('page');
         const surahParam = params.get('surah');
+        const indexParam = params.get('index');
+
+        if (indexParam === 'open' || indexParam === '1') {
+          setIsIndexOpen(true);
+        }
+
         if (pageParam) {
           const p = parseInt(pageParam, 10);
           if (!isNaN(p) && p >= 1 && p <= TOTAL_PAGES) {
@@ -196,8 +203,13 @@ export default function QuranMushafPage() {
         cacheRef.current[pageNum] = pageObj;
         setPagesData((prev) => ({ ...prev, [pageNum]: pageObj }));
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      // استخدام البيانات المخزنة محلياً إذا تعذر الاتصال بالشبكة (أوفلاين أو انقطاع النت)
+      if (QURAN_FALLBACK_PAGES[pageNum]) {
+        const fallback = QURAN_FALLBACK_PAGES[pageNum];
+        cacheRef.current[pageNum] = fallback;
+        setPagesData((prev) => ({ ...prev, [pageNum]: fallback }));
+      }
     } finally {
       setLoadingPages((prev) => ({ ...prev, [pageNum]: false }));
     }

@@ -7,6 +7,7 @@ import { HabitList } from '../components/HabitList';
 import { PartnerCard } from '../components/PartnerCard';
 import { PartnerInviteModal } from '../components/PartnerInviteModal';
 import { AddHabitModal } from '../components/AddHabitModal';
+import { QuranWirdCard } from '../components/QuranWirdCard';
 import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
 import { toggleHabitCompletion, fetchPartnerProgress, fetchAllPartnersProgress, getUserRealStreak } from './actions/habits';
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
@@ -30,6 +31,7 @@ import Link from 'next/link';
 // إصدار العادات الافتراضية — تغييره يؤدي لتحديث القائمة للترتيب الزمني والسنن والصيام
 const HABITS_VERSION = 'v5';
 const HABITS_KEY = 'mueen_habits';
+const HABITS_DATE_KEY = 'mueen_habits_date';
 const VERSION_KEY = 'mueen_habits_version';
 
 const DEFAULT_HABITS: HabitItem[] = [
@@ -67,22 +69,34 @@ const DEFAULT_HABITS: HabitItem[] = [
   { id: 'h_fast_white_days', title: 'صيام الأيام البيض (13 و 14 و 15)', category: 'صيام', fastingType: 'white_days', completed: false, timeSlot: 'fasting', timeHint: 'ثلاثة أيام من كل شهر هجري' },
 ];
 
-// قراءة العادات من LocalStorage مع دعم الإصدار (Versioned)
+// قراءة العادات من LocalStorage مع التصفير التلقائي اليومي (Daily Reset)
 function loadHabitsFromStorage(): HabitItem[] {
   if (typeof window === 'undefined') return DEFAULT_HABITS;
   try {
+    const today = new Date().toISOString().split('T')[0];
     const version = localStorage.getItem(VERSION_KEY);
     const saved = localStorage.getItem(HABITS_KEY);
+    const savedDate = localStorage.getItem(HABITS_DATE_KEY);
 
     if (version !== HABITS_VERSION || !saved) {
       localStorage.setItem(VERSION_KEY, HABITS_VERSION);
+      localStorage.setItem(HABITS_DATE_KEY, today);
       localStorage.setItem(HABITS_KEY, JSON.stringify(DEFAULT_HABITS));
       return DEFAULT_HABITS;
     }
 
     const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    return DEFAULT_HABITS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_HABITS;
+
+    // فحص التاريخ: إذا تغير اليوم، يتم تصفير حالة الإنجاز لليوم الجديد تلقائياً مع الحفاظ على العادات المخصصة!
+    if (savedDate !== today) {
+      const resetHabits = parsed.map((h: HabitItem) => ({ ...h, completed: false }));
+      localStorage.setItem(HABITS_DATE_KEY, today);
+      localStorage.setItem(HABITS_KEY, JSON.stringify(resetHabits));
+      return resetHabits;
+    }
+
+    return parsed;
   } catch {
     return DEFAULT_HABITS;
   }
@@ -121,17 +135,45 @@ export default function DashboardPage() {
       setDateInfo(getCountryDateTime(getSavedCountryId(), getSavedHijriAdjustment()));
     };
 
+    const checkDailyReset = () => {
+      const currentToday = new Date().toISOString().split('T')[0];
+      const savedDate = localStorage.getItem(HABITS_DATE_KEY);
+      if (savedDate && savedDate !== currentToday) {
+        setHabits((prev) => {
+          const reset = prev.map((h) => ({ ...h, completed: false }));
+          localStorage.setItem(HABITS_DATE_KEY, currentToday);
+          localStorage.setItem(HABITS_KEY, JSON.stringify(reset));
+          return reset;
+        });
+      }
+    };
+
     handleSettingsUpdate();
-    const timer = setInterval(handleSettingsUpdate, 60000);
+    checkDailyReset();
+    const timer = setInterval(() => {
+      handleSettingsUpdate();
+      checkDailyReset();
+    }, 60000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleSettingsUpdate();
+        checkDailyReset();
+      }
+    };
 
     if (typeof window !== 'undefined') {
       window.addEventListener(SETTINGS_CHANGE_EVENT, handleSettingsUpdate);
+      window.addEventListener('visibilitychange', handleVisibility);
+      window.addEventListener('focus', checkDailyReset);
     }
 
     return () => {
       clearInterval(timer);
       if (typeof window !== 'undefined') {
         window.removeEventListener(SETTINGS_CHANGE_EVENT, handleSettingsUpdate);
+        window.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('focus', checkDailyReset);
       }
     };
   }, []);
@@ -291,6 +333,9 @@ export default function DashboardPage() {
           countryName={dateInfo.country?.name}
           timeString={dateInfo.timeString}
         />
+
+        {/* بطاقة المصحف الشريف والورد اليومي المباشرة */}
+        <QuranWirdCard lang={lang} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* العمود الرئيسي: قائمة أوراد وعادات اليوم */}

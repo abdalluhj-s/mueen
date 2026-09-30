@@ -29,39 +29,102 @@ function AdhkarContent() {
     return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
   }, []);
 
-  // استرجاع التقدم أو التهيئة عند تغيير القسم
-  useEffect(() => {
-    const categoryItems = ADHKAR_DATA.filter((item) => item.category === activeCategory);
-    
-    // محاولة استرجاع التقدم من LocalStorage
+  // الحصول على مفتاح اليوم الحالي بصيغة YYYY-MM-DD
+  const getTodayDateKey = () => new Date().toISOString().split('T')[0];
+
+  // مزامنة حالة الأذكار مع العادات اليومية في الصفحة الرئيسية
+  const syncWithDashboardHabit = (category: string, isAllCompleted: boolean) => {
+    if (typeof window === 'undefined') return;
     try {
-      const saved = localStorage.getItem(`mueen_adhkar_${activeCategory}`);
+      const habitIdMap: Record<string, string> = {
+        morning: 'h9',
+        evening: 'h10',
+        sleep: 'h11',
+      };
+      const habitId = habitIdMap[category];
+      if (!habitId) return;
+
+      const saved = localStorage.getItem('mueen_habits');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        setCounts(parsed.counts || {});
-        setCompleted(parsed.completed || {});
-        return;
+        const habits = JSON.parse(saved);
+        if (Array.isArray(habits)) {
+          const updated = habits.map((h: any) =>
+            h.id === habitId ? { ...h, completed: isAllCompleted } : h
+          );
+          localStorage.setItem('mueen_habits', JSON.stringify(updated));
+        }
       }
     } catch {}
+  };
 
-    // تهيئة جديدة
+  // استرجاع التقدم أو التهيئة اليومية عند تغيير القسم أو عند تغير اليوم
+  const loadCategoryData = () => {
+    const today = getTodayDateKey();
+    const categoryItems = ADHKAR_DATA.filter((item) => item.category === activeCategory);
+
+    // القيم الافتراضية للبداية
     const initialCounts: Record<string, number> = {};
     const initialCompleted: Record<string, boolean> = {};
     categoryItems.forEach((item) => {
       initialCounts[item.id] = item.count;
       initialCompleted[item.id] = false;
     });
+
+    try {
+      const saved = localStorage.getItem(`mueen_adhkar_${activeCategory}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // التحقق من التاريخ: إذا كان الحفظ لنفس تاريخ اليوم الحالي نسترجع التقدم
+        if (parsed.date === today && parsed.counts && parsed.completed) {
+          setCounts(parsed.counts);
+          setCompleted(parsed.completed);
+          return;
+        }
+      }
+    } catch {}
+
+    // إذا كان يوماً جديداً أو لم يُسجل تقدم بعد: تصفير الأذكار لليوم الجديد تلقائياً
     setCounts(initialCounts);
     setCompleted(initialCompleted);
-  }, [activeCategory]);
-
-  // حفظ التقدم في LocalStorage
-  const saveProgress = (newCounts: Record<string, number>, newCompleted: Record<string, boolean>) => {
     try {
       localStorage.setItem(
         `mueen_adhkar_${activeCategory}`,
-        JSON.stringify({ counts: newCounts, completed: newCompleted })
+        JSON.stringify({ date: today, counts: initialCounts, completed: initialCompleted })
       );
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadCategoryData();
+
+    // الاستماع لعودة المستخدم للمتصفح (لتحديث التصفير إذا مر منتصف الليل)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadCategoryData();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', loadCategoryData);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', loadCategoryData);
+    };
+  }, [activeCategory]);
+
+  // حفظ التقدم في LocalStorage مع تاريخ اليوم الحالي
+  const saveProgress = (newCounts: Record<string, number>, newCompleted: Record<string, boolean>) => {
+    const today = getTodayDateKey();
+    try {
+      localStorage.setItem(
+        `mueen_adhkar_${activeCategory}`,
+        JSON.stringify({ date: today, counts: newCounts, completed: newCompleted })
+      );
+
+      // فحص هل اكتملت جميع أذكار هذا القسم لليوم لمزامنتها مع لوحة التحكم
+      const categoryItems = ADHKAR_DATA.filter((item) => item.category === activeCategory);
+      const isAllDone = categoryItems.length > 0 && categoryItems.every((item) => newCompleted[item.id]);
+      syncWithDashboardHabit(activeCategory, isAllDone);
     } catch {}
   };
 
