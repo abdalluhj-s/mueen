@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookMarked, BookOpen, Calendar, User, Download, Sparkles, X, Settings } from 'lucide-react';
+import { Home, BookMarked, Calendar, User, Download, Sparkles, X, Settings } from 'lucide-react';
 import { createClient } from '../lib/supabase/client';
 import { ProfileEditModal } from './ProfileEditModal';
 import { getSavedLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
@@ -80,12 +80,6 @@ export const MobileBottomNav: React.FC = () => {
       href: '/adhkar',
       icon: BookMarked,
       isActive: pathname.startsWith('/adhkar'),
-    },
-    {
-      label: t('quran', lang),
-      href: '/quran',
-      icon: BookOpen,
-      isActive: pathname.startsWith('/quran'),
     },
     {
       label: t('progress', lang),

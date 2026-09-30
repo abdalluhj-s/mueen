@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Languages, Calendar, BookOpen, BookMarked } from 'lucide-react';
+import { Sun, Moon, Languages, Calendar, BookMarked } from 'lucide-react';
 import Link from 'next/link';
 import { getSavedLanguage, saveLanguage, Language, LANGUAGE_CHANGE_EVENT, t } from '../lib/translations';
 
@@ -88,21 +88,11 @@ export const Header: React.FC<HeaderProps> = () => {
 
         {/* أدوات التحكم العلوية المختصرة المحددة بدقة: التحكم في الخط، الدارك مود، وتبديل اللغة */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
-          {/* رابط المصحف الشريف المباشر */}
-          <Link
-            href="/quran"
-            title={lang === 'ar' ? 'المصحف الشريف وتلاوة القرآن' : 'The Holy Quran'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs sm:text-sm font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer shadow-2xs shrink-0"
-          >
-            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>{lang === 'ar' ? 'المصحف' : 'Quran'}</span>
-          </Link>
-
-          {/* رابط الأذكار السريع */}
+          {/* رابط الأذكار السريع والورد اليومي */}
           <Link
             href="/adhkar"
             title={lang === 'ar' ? 'أذكار المسلم والورد اليومي' : 'Daily Adhkar'}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs sm:text-sm font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer shadow-2xs shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs sm:text-sm font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer shadow-2xs shrink-0"
           >
             <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
             <span>{lang === 'ar' ? 'الأذكار' : 'Adhkar'}</span>

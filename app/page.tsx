@@ -7,7 +7,6 @@ import { HabitList } from '../components/HabitList';
 import { PartnerCard } from '../components/PartnerCard';
 import { PartnerInviteModal } from '../components/PartnerInviteModal';
 import { AddHabitModal } from '../components/AddHabitModal';
-import { QuranWirdCard } from '../components/QuranWirdCard';
 import { HabitItem, PartnerStatus, PartnerMessage } from '../types/dashboard';
 import { toggleHabitCompletion, fetchPartnerProgress, fetchAllPartnersProgress, getUserRealStreak } from './actions/habits';
 import { acceptInviteCode, getPartnerMessages } from './actions/partner';
@@ -69,11 +68,19 @@ const DEFAULT_HABITS: HabitItem[] = [
   { id: 'h_fast_white_days', title: 'صيام الأيام البيض (13 و 14 و 15)', category: 'صيام', fastingType: 'white_days', completed: false, timeSlot: 'fasting', timeHint: 'ثلاثة أيام من كل شهر هجري' },
 ];
 
+// الحصول على مفتاح اليوم الحالي بدقة حسب توقيت جهاز المستخدم المحلي YYYY-MM-DD
+function getTodayDateKey(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // قراءة العادات من LocalStorage مع التصفير التلقائي اليومي (Daily Reset)
 function loadHabitsFromStorage(): HabitItem[] {
   if (typeof window === 'undefined') return DEFAULT_HABITS;
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateKey();
     const version = localStorage.getItem(VERSION_KEY);
     const saved = localStorage.getItem(HABITS_KEY);
     const savedDate = localStorage.getItem(HABITS_DATE_KEY);
@@ -123,7 +130,7 @@ export default function DashboardPage() {
     return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
   }, []);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateKey();
 
   // حساب التواريخ الهجرية والميلادية والوقت حسب الدولة وضبط التاريخ المخصص
   const [dateInfo, setDateInfo] = useState(() => {
@@ -136,7 +143,7 @@ export default function DashboardPage() {
     };
 
     const checkDailyReset = () => {
-      const currentToday = new Date().toISOString().split('T')[0];
+      const currentToday = getTodayDateKey();
       const savedDate = localStorage.getItem(HABITS_DATE_KEY);
       if (savedDate && savedDate !== currentToday) {
         setHabits((prev) => {
@@ -333,9 +340,6 @@ export default function DashboardPage() {
           countryName={dateInfo.country?.name}
           timeString={dateInfo.timeString}
         />
-
-        {/* بطاقة المصحف الشريف والورد اليومي المباشرة */}
-        <QuranWirdCard lang={lang} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* العمود الرئيسي: قائمة أوراد وعادات اليوم */}

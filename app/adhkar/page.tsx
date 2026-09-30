@@ -29,8 +29,13 @@ function AdhkarContent() {
     return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLang);
   }, []);
 
-  // الحصول على مفتاح اليوم الحالي بصيغة YYYY-MM-DD
-  const getTodayDateKey = () => new Date().toISOString().split('T')[0];
+  // الحصول على مفتاح اليوم الحالي بدقة حسب توقيت جهاز المستخدم المحلي YYYY-MM-DD
+  const getTodayDateKey = (d: Date = new Date()) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   // مزامنة حالة الأذكار مع العادات اليومية في الصفحة الرئيسية
   const syncWithDashboardHabit = (category: string, isAllCompleted: boolean) => {
@@ -104,9 +109,14 @@ function AdhkarContent() {
       }
     };
 
+    const timer = setInterval(() => {
+      loadCategoryData();
+    }, 30000);
+
     window.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', loadCategoryData);
     return () => {
+      clearInterval(timer);
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', loadCategoryData);
     };
