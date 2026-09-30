@@ -50,23 +50,65 @@ function LoginPageContent() {
       setIsLoading(true);
       setError(null);
       setSuccessMsg(null);
+      const supabase = createClient();
 
       if (isSignUp) {
-        // إنشاء حساب جديد عبر السيرفر
-        const result = await signUpWithEmail(email, password, fullName);
-        if (!result.success) {
-          throw new Error(result.error);
+        // 1. محاولة التسجيل عبر المتصفح
+        let signUpErr: any = null;
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: {
+              data: {
+                full_name: fullName.trim() || email.split('@')[0],
+              },
+            },
+          });
+          if (error) signUpErr = error;
+        } catch (clientErr) {
+          signUpErr = clientErr;
         }
 
-        setSuccessMsg('تم إنشاء الحساب بنجاح! جارٍ تسجيل دخولك...');
+        // إذا فشل المتصفح (مشكلة شبكة)، نجرب عبر Server Action
+        if (signUpErr) {
+          const serverRes = await signUpWithEmail(email, password, fullName);
+          if (!serverRes.success) {
+            throw new Error(serverRes.error);
+          }
+        }
+
+        setSuccessMsg('تم إنشاء الحساب بنجاح! جارٍ توجيهك...');
         setTimeout(() => {
           window.location.href = destination;
-        }, 1200);
+        }, 1000);
       } else {
-        // تسجيل الدخول عبر السيرفر
-        const result = await loginWithEmail(email, password);
-        if (!result.success) {
-          throw new Error(result.error);
+        // 1. محاولة تسجيل الدخول عبر المتصفح أولاً (لحفظ الجلسة في الكوكيز محلياً)
+        let signInErr: any = null;
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+          if (error) signInErr = error;
+        } catch (clientErr) {
+          signInErr = clientErr;
+        }
+
+        // إذا كان الخطأ بيانات غير صحيحة، نعرضه مباشرة للمستخدم
+        if (signInErr) {
+          const errMsg = signInErr.message || '';
+          if (errMsg.includes('Invalid login credentials')) {
+            throw new Error('بيانات الدخول غير صحيحة (تأكد من البريد الإلكتروني وكلمة المرور)');
+          } else if (errMsg.includes('Email not confirmed')) {
+            throw new Error('يرجى تأكيد بريدك الإلكتروني أولاً عبر الرابط المرسل لك');
+          }
+
+          // إذا كان خطأ اتصال أو شبكة، نجرب عبر Server Action كبديل
+          const serverRes = await loginWithEmail(email, password);
+          if (!serverRes.success) {
+            throw new Error(serverRes.error);
+          }
         }
 
         window.location.href = destination;

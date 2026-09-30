@@ -1,11 +1,7 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
-let clientInstance: ReturnType<typeof createSupabaseClient> | null = null;
+let clientInstance: ReturnType<typeof createBrowserClient> | null = null;
 
-/**
- * عميل Supabase للمتصفح مع تخزين الجلسة في LocalStorage حصراً
- * هذا يمنع تماماً تراكم ملفات الكوكيز في الهيدر ويمنع أخطاء 400 على Netlify و 494 على Vercel
- */
 export function createClient() {
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://opezychzfccccnbitwgr.supabase.co';
@@ -15,14 +11,7 @@ export function createClient() {
     'sb_publishable_OXdfm7dowG3JVvNy56sc5g_tKRtSSuA';
 
   if (!clientInstance) {
-    clientInstance = createSupabaseClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storageKey: 'mueen_auth_session',
-      },
-    });
+    clientInstance = createBrowserClient(supabaseUrl, supabaseKey);
   }
 
   return clientInstance;
